@@ -4,6 +4,12 @@ export interface UserProfile {
   experience: string; // Years of experience
   skills: string[];
   resumeText: string;
+  resumeFile?: {
+    name: string;
+    size: number;
+    type: string;
+    uploadedAt: number;
+  };
   preferences: {
     remote: boolean;
     minSalary: number;
@@ -50,4 +56,11 @@ export interface AgentLog {
   timestamp: number;
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
+}
+
+export interface SkillGap {
+  missing: string[];
+  strong: string[];
+  recommended: string[];
+  analysis: string;
 }

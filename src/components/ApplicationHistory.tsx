@@ -67,7 +67,10 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                     </td>
                                     <td className="p-4">
                                         {app.coverLetter && (
-                                            <button className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center">
+                                            <button 
+                                                onClick={() => alert(`Cover Letter for ${app.jobTitle}:\n\n${app.coverLetter}`)}
+                                                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+                                            >
                                                 <FileText className="w-4 h-4 mr-1" /> View Letter
                                             </button>
                                         )}
