@@ -8,6 +8,18 @@ interface DashboardProps {
   applications: ApplicationRecord[];
 }
 
+interface KPICardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  bg: string;
+  borderColor: string;
+  trend: string;
+  trendColor: string;
+  sparklineData?: number[];
+  sparklineColor?: string;
+}
+
 type TimePeriod = '7d' | '30d' | '90d';
 
 const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
@@ -16,7 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
   
   // Filter applications based on time period
   const filteredApplications = useMemo(() => {
-    const now = Date.now();
+    const now = new Date().getTime();
     const periodMs = {
       '7d': 7 * 24 * 60 * 60 * 1000,
       '30d': 30 * 24 * 60 * 60 * 1000,
@@ -56,7 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
   const sparklineData = useMemo(() => {
     const days = selectedPeriod === '7d' ? 7 : selectedPeriod === '30d' ? 30 : 90;
     const data = [];
-    const now = Date.now();
+    const now = new Date().getTime();
     
     for (let i = days - 1; i >= 0; i--) {
       const dayStart = now - (i * 24 * 60 * 60 * 1000);
@@ -123,205 +135,260 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <div>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Executive Dashboard</h1>
-            <p className="text-gray-600">Real-time insights into your job application pipeline</p>
-        </div>
-        <div className="text-right hidden md:block mt-4 md:mt-0">
-            <p className="text-sm font-medium text-gray-500">Last Active</p>
-            <p className="text-gray-900 font-semibold">{new Date().toLocaleTimeString()}</p>
-        </div>
-        <div className="flex gap-2 mt-4 md:mt-0">
-            <button
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Executive Header */}
+        <div className="bg-white rounded-corporate-lg shadow-corporate border border-gray-200 p-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-blue-700 rounded-full"></div>
+                <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Executive Dashboard</h1>
+              </div>
+              <p className="text-lg text-gray-600 font-medium">Real-time analytics and insights for your job application pipeline</p>
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-600 font-medium">System Active</span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Last updated: {new Date().toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
                 onClick={handleRefresh}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-corporate text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
                 disabled={isRefreshing}
-            >
-                <RefreshCw className={`w-4 h-4 text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
-            <button 
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+              </button>
+              <button
                 onClick={handleExport}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-corporate hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm"
                 title="Export data as CSV"
-            >
-                <Download className="w-4 h-4 text-gray-600" />
-            </button>
+              >
+                <Download className="w-4 h-4" />
+                Export Report
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard 
-            title="Applications Submitted" 
-            value={applied} 
-            icon={<CheckCircle className="text-green-600 w-6 h-6"/>}
-            bg="bg-green-50"
+        {/* KPI Metrics Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <KPICard
+            title="Applications Submitted"
+            value={applied}
+            icon={<CheckCircle className="text-green-600 w-7 h-7"/>}
+            bg="bg-gradient-to-br from-green-50 to-emerald-50"
+            borderColor="border-green-200"
             trend={`${appliedTrend.isPositive ? '+' : '-'}${appliedTrend.value}% from last period`}
-            trendColor={appliedTrend.isPositive ? "text-green-600" : "text-red-600"}
+            trendColor={appliedTrend.isPositive ? "text-green-700" : "text-red-600"}
             sparklineData={sparklineData.map(d => d.applied)}
-            sparklineColor="#22c55e"
-        />
-        <KPICard 
-            title="Match Success Rate" 
-            value={`${successRate}%`} 
-            icon={<Target className="text-blue-600 w-6 h-6"/>}
-            bg="bg-blue-50"
+            sparklineColor="#16a34a"
+          />
+          <KPICard
+            title="Success Rate"
+            value={`${successRate}%`}
+            icon={<Target className="text-blue-600 w-7 h-7"/>}
+            bg="bg-gradient-to-br from-blue-50 to-indigo-50"
+            borderColor="border-blue-200"
             trend="Above industry average"
-            trendColor="text-blue-600"
-        />
-        <KPICard 
-            title="Applications Rejected" 
-            value={rejected} 
-            icon={<XCircle className="text-red-600 w-6 h-6"/>}
-            bg="bg-red-50"
-            trend="Low match score"
+            trendColor="text-blue-700"
+          />
+          <KPICard
+            title="Applications Rejected"
+            value={rejected}
+            icon={<XCircle className="text-red-600 w-7 h-7"/>}
+            bg="bg-gradient-to-br from-red-50 to-rose-50"
+            borderColor="border-red-200"
+            trend="Low match criteria"
             trendColor="text-red-600"
             sparklineData={sparklineData.map(d => d.rejected)}
-            sparklineColor="#ef4444"
-        />
-        <KPICard 
-            title="Time Saved" 
-            value={`${(applied * 0.5).toFixed(1)}h`} 
-            icon={<Clock className="text-amber-600 w-6 h-6"/>}
-            bg="bg-amber-50"
-            trend="Est. 30 mins per application"
-            trendColor="text-amber-600"
-        />
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Analytics Chart */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-lg shadow-corporate border border-gray-200">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Application Funnel Analysis</h3>
-                <select 
-                    value={selectedPeriod}
-                    onChange={(e) => setSelectedPeriod(e.target.value as TimePeriod)}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    <option value="7d">Last 7 days</option>
-                    <option value="30d">Last 30 days</option>
-                    <option value="90d">Last 3 months</option>
-                </select>
-            </div>
-            <div className="h-[320px] w-full">
-                <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={funnelData.length > 0 ? funnelData : [{name: 'No Data', value: 0}]}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                        <Tooltip 
-                            cursor={{fill: '#f8fafc'}}
-                            contentStyle={{
-                                borderRadius: '8px', 
-                                border: '1px solid #e2e8f0', 
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                backgroundColor: '#ffffff'
-                            }}
-                        />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
-                             {funnelData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={['#94a3b8', '#0ea5e9', '#22c55e', '#ef4444'][index % 4]} />
-                             ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
+            sparklineColor="#dc2626"
+          />
+          <KPICard
+            title="Time Saved"
+            value={`${(applied * 0.5).toFixed(1)}h`}
+            icon={<Clock className="text-amber-600 w-7 h-7"/>}
+            bg="bg-gradient-to-br from-amber-50 to-orange-50"
+            borderColor="border-amber-200"
+            trend="30 mins per application"
+            trendColor="text-amber-700"
+          />
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white p-6 rounded-lg shadow-corporate border border-gray-200">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">View All</button>
+        {/* Analytics Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* Application Funnel Chart */}
+          <div className="lg:col-span-2 bg-white p-8 rounded-corporate-lg shadow-corporate border border-gray-200">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Application Pipeline Analysis</h3>
+                <p className="text-sm text-gray-600">Conversion funnel from scan to application</p>
+              </div>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value as TimePeriod)}
+                className="px-4 py-2 border border-gray-300 rounded-corporate text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-medium"
+              >
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 3 months</option>
+              </select>
             </div>
-            <div className="space-y-4 max-h-[320px] overflow-y-auto pr-2">
-                {applications.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 font-medium">No applications yet</p>
-                        <p className="text-gray-400 text-sm mt-1">Start the AI agent to begin</p>
+            <div className="h-[360px] w-full">
+              <ResponsiveContainer width="100%" height={360}>
+                <BarChart data={funnelData.length > 0 ? funnelData : [{name: 'No Data', value: 0}]}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{fill: '#6b7280', fontSize: 12, fontWeight: 500}}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{fill: '#6b7280', fontSize: 12, fontWeight: 500}}
+                  />
+                  <Tooltip
+                    cursor={{fill: '#f9fafb'}}
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                      backgroundColor: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={64}>
+                    {funnelData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={['#9ca3af', '#2563eb', '#16a34a', '#dc2626'][index % 4]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-white p-6 rounded-corporate-lg shadow-corporate border border-gray-200">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
+                <p className="text-sm text-gray-600">Latest application updates</p>
+              </div>
+              <button className="text-sm text-blue-600 hover:text-blue-700 font-semibold transition-colors">View All</button>
+            </div>
+            <div className="space-y-4 max-h-[360px] overflow-y-auto pr-2">
+              {applications.length === 0 ? (
+                <div className="text-center py-16">
+                  <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 font-semibold text-lg">No applications yet</p>
+                  <p className="text-gray-400 text-sm mt-2">Start the AI agent to begin tracking</p>
+                </div>
+              ) : (
+                [...applications].reverse().slice(0, 8).map((app) => (
+                  <div key={app.id} className="flex items-start p-4 rounded-corporate hover:bg-gray-50 transition-colors border border-gray-100 group">
+                    <div className={`mt-1.5 w-3 h-3 rounded-full shrink-0 ${
+                      app.status === ApplicationStatus.APPLIED ? 'bg-green-500' :
+                      app.status === ApplicationStatus.REJECTED ? 'bg-red-400' :
+                      app.status === ApplicationStatus.PENDING ? 'bg-amber-400' :
+                      app.status === ApplicationStatus.ANALYZING ? 'bg-blue-400' :
+                      'bg-gray-400'
+                    }`}></div>
+                    <div className="ml-4 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">{app.jobTitle}</p>
+                      <p className="text-xs text-gray-600 font-medium">{app.company}</p>
+                      <p className="text-xs text-gray-400 mt-1 font-medium">{new Date(app.timestamp).toLocaleDateString()}</p>
                     </div>
-                ) : (
-                    [...applications].reverse().slice(0, 8).map((app) => (
-                        <div key={app.id} className="flex items-start p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
-                            <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
-                                app.status === ApplicationStatus.APPLIED ? 'bg-green-500' : 
-                                app.status === ApplicationStatus.REJECTED ? 'bg-red-400' :
-                                app.status === ApplicationStatus.PENDING ? 'bg-amber-400' :
-                                app.status === ApplicationStatus.ANALYZING ? 'bg-blue-400' :
-                                'bg-gray-400'
-                            }`}></div>
-                            <div className="ml-3 flex-1">
-                                <p className="text-sm font-medium text-gray-900">{app.jobTitle}</p>
-                                <p className="text-xs text-gray-600">{app.company}</p>
-                                <p className="text-xs text-gray-400 mt-1">{new Date(app.timestamp).toLocaleDateString()}</p>
-                            </div>
-                            <div className="ml-auto text-right">
-                                <div className="text-sm font-semibold text-gray-900">{app.matchScore}%</div>
-                                <div className={`text-xs ${
-                                    app.matchScore >= 70 ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                    {app.matchScore >= 70 ? 'Match' : 'Low Match'}
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
+                    <div className="ml-auto text-right">
+                      <div className="text-sm font-bold text-gray-900">{app.matchScore}%</div>
+                      <div className={`text-xs font-semibold ${
+                        app.matchScore >= 70 ? 'text-green-700' : 'text-red-600'
+                      }`}>
+                        {app.matchScore >= 70 ? 'Strong Match' : 'Low Match'}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-        </div>
+          </div>
 
-        {/* Status Breakdown Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-corporate border border-gray-200">
+          {/* Status Breakdown Chart */}
+          <div className="bg-white p-6 rounded-corporate-lg shadow-corporate border border-gray-200">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Application Status Breakdown</h3>
-                <span className="text-sm text-gray-500">{selectedPeriod === '7d' ? 'Last 7 days' : selectedPeriod === '30d' ? 'Last 30 days' : 'Last 3 months'}</span>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Status Distribution</h3>
+                <p className="text-sm text-gray-600">Current application breakdown</p>
+              </div>
+              <span className="text-sm text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full">
+                {selectedPeriod === '7d' ? '7 days' : selectedPeriod === '30d' ? '30 days' : '90 days'}
+              </span>
             </div>
             {statusData.length > 0 ? (
-                <div className="h-[320px] w-full">
-                    <ResponsiveContainer width="100%" height={320}>
-                        <PieChart>
-                            <Pie
-                                data={statusData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={(entry) => `${entry.name}: ${entry.value}`}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {statusData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
+              <div className="h-[360px] w-full">
+                <ResponsiveContainer width="100%" height={360}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => `${entry.name}: ${entry.value}`}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      dataKey="value"
+                      style={{ fontSize: '14px', fontWeight: '500' }}
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                        backgroundColor: '#ffffff',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: '14px', fontWeight: '500' }}
+                      iconType="circle"
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
-                <div className="h-[320px] flex items-center justify-center">
-                    <div className="text-center">
-                        <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 font-medium">No data for selected period</p>
-                    </div>
+              <div className="h-[360px] flex items-center justify-center">
+                <div className="text-center">
+                  <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 font-semibold text-lg">No data available</p>
+                  <p className="text-gray-400 text-sm mt-2">Data will appear here</p>
                 </div>
+              </div>
             )}
-        </div>
+          </div>
 
+        </div>
       </div>
     </div>
   );
 };
 
 // Professional KPI Card Component
-const KPICard = ({ title, value, icon, bg, trend, trendColor, sparklineData, sparklineColor }: any) => {
+const KPICard: React.FC<KPICardProps> = ({ title, value, icon, bg, borderColor, trend, trendColor, sparklineData, sparklineColor }) => {
   const getSparklinePoints = (data: number[]) => {
     if (data.length < 2) return '';
     const max = Math.max(...data, 1);
@@ -329,7 +396,7 @@ const KPICard = ({ title, value, icon, bg, trend, trendColor, sparklineData, spa
     const range = max - min || 1;
     const width = 60;
     const height = 20;
-    
+
     return data.map((val, i) => {
       const x = (i / (data.length - 1)) * width;
       const y = height - ((val - min) / range) * height;
@@ -338,40 +405,41 @@ const KPICard = ({ title, value, icon, bg, trend, trendColor, sparklineData, spa
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-corporate border border-gray-200 hover:shadow-corporate-lg transition-shadow duration-200">
-        <div className="flex items-start justify-between">
-            <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-                <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-            </div>
-            <div className={`p-3 rounded-lg ${bg}`}>
-                {icon}
-            </div>
+    <div className={`bg-white p-6 rounded-corporate-lg shadow-corporate border ${borderColor} hover:shadow-corporate-lg transition-all duration-200 group`}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">{title}</p>
+          <h3 className="text-3xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">{value}</h3>
         </div>
-        
-        {sparklineData && sparklineData.length > 1 && (
-            <div className="mt-3">
-                <svg width="60" height="20" className="w-full">
-                    <path
-                        d={getSparklinePoints(sparklineData)}
-                        fill="none"
-                        stroke={sparklineColor || '#64748b'}
-                        strokeWidth="2"
-                    />
-                </svg>
-            </div>
+        <div className={`p-4 rounded-corporate-lg ${bg} border border-gray-200 group-hover:scale-105 transition-transform duration-200`}>
+          {icon}
+        </div>
+      </div>
+
+      {sparklineData && sparklineData.length > 1 && (
+        <div className="mt-4 mb-3">
+          <svg width="60" height="20" className="w-full">
+            <path
+              d={getSparklinePoints(sparklineData)}
+              fill="none"
+              stroke={sparklineColor || '#64748b'}
+              strokeWidth="2.5"
+              className="drop-shadow-sm"
+            />
+          </svg>
+        </div>
+      )}
+
+      <div className="flex items-center">
+        {trend.includes('+') || trend.includes('Above') || trend.includes('30 mins') ? (
+          <TrendingUp className="w-4 h-4 mr-2" style={{ color: trendColor }} />
+        ) : (
+          <TrendingDown className="w-4 h-4 mr-2" style={{ color: trendColor }} />
         )}
-        
-        <div className="flex items-center mt-3">
-            {trend.includes('+') ? (
-                <TrendingUp className="w-3 h-3 mr-1" style={{ color: trendColor }} />
-            ) : (
-                <TrendingDown className="w-3 h-3 mr-1" style={{ color: trendColor }} />
-            )}
-            <p className={`text-xs font-medium ${trendColor}`}>
-                {trend}
-            </p>
-        </div>
+        <p className={`text-sm font-semibold ${trendColor}`}>
+          {trend}
+        </p>
+      </div>
     </div>
   );
 };
