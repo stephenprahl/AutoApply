@@ -99,6 +99,38 @@ export const backendApi = {
     return response.json();
   },
 
+  // Auto-apply workflow
+  async runAutoApply(jobs: any[], maxApplications?: number, resume?: File) {
+    const formData = new FormData();
+    formData.append('jobs', JSON.stringify(jobs));
+    if (maxApplications) formData.append('maxApplications', maxApplications.toString());
+    if (resume) formData.append('resume', resume);
+
+    const response = await fetch(`${API_BASE_URL}/auto-apply`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('Failed to run auto-apply workflow');
+    return response.json();
+  },
+
+  // Settings management
+  async getSettings() {
+    const response = await fetch(`${API_BASE_URL}/settings`);
+    if (!response.ok) throw new Error('Failed to fetch settings');
+    return response.json();
+  },
+
+  async updateSettings(settings: any) {
+    const response = await fetch(`${API_BASE_URL}/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) throw new Error('Failed to update settings');
+    return response.json();
+  },
+
   // Health check
   async healthCheck() {
     const response = await fetch(`${API_BASE_URL}/health`);

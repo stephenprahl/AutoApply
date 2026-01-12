@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Play, Pause, Search, Terminal, Loader, Settings, Zap, Target, CheckCircle, AlertTriangle, MapPin, DollarSign, Clock, Briefcase, Star } from 'lucide-react';
 import clsx from 'clsx';
-import type { Job, UserProfile, ApplicationRecord, AgentLog } from '../types.ts';
-import { ApplicationStatus } from '../types.ts';
+import { AlertTriangle, Briefcase, CheckCircle, Clock, DollarSign, Loader, MapPin, Pause, Play, Search, Settings, Star, Target, Terminal, Zap } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { backendApi } from '../services/backendService.ts';
+import type { AgentLog, ApplicationRecord, Job, UserProfile } from '../types.ts';
+import { ApplicationStatus } from '../types.ts';
 
 interface AgentViewProps {
   profile: UserProfile;
@@ -27,7 +27,7 @@ interface AgentConfig {
   remoteOnly: boolean;
 }
 
-const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplication }) => {
+const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, addApplication }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -49,9 +49,9 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
   const [showJobSearch, setShowJobSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<Job[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const logsEndRef = useRef<HTMLDivElement>(null);
-  
+
   const lastActivity = useMemo(() => {
     if (logs.length === 0) return 'No activity yet';
     const lastLog = logs[logs.length - 1];
@@ -74,74 +74,14 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
     setLogs(prev => [...prev, { timestamp: Date.now(), message, type }]);
   };
 
-  const processJob = async (job: Job) => {
-    setCurrentJob(job);
-    setTask("Analyzing job requirements...");
-    setProgress(10);
-    addLog(`Processing: ${job.title} at ${job.company}`, 'info');
-
-    try {
-      setTask("Evaluating match score...");
-      setProgress(30);
-      const fit = await backendApi.analyzeJobFit(profile, job);
-      
-      if (fit.score < config.matchThreshold) {
-        addLog(`Rejected: Low match score (${fit.score}%). ${fit.reason}`, 'warning');
-        addApplication({
-          id: Math.random().toString(36),
-          jobId: job.id,
-          jobTitle: job.title,
-          company: job.company,
-          status: ApplicationStatus.REJECTED,
-          matchScore: fit.score,
-          matchReason: fit.reason,
-          timestamp: Date.now()
-        });
-        setProgress(100);
-        return;
-      }
-
-      addLog(`High match detected (${fit.score}%)! Preparing application...`, 'success');
-      
-      if (config.autoApply) {
-        setTask("Generating personalized cover letter...");
-        setProgress(60);
-        const coverLetter = await backendApi.generateCoverLetter(profile, job);
-        addLog("Cover letter generated successfully.", 'info');
-        
-        setTask("Submitting application...");
-        setProgress(90);
-        await new Promise(r => setTimeout(r, 2000)); // Simulate API call
-        
-        addLog(`Application submitted to ${job.company}`, 'success');
-        addApplication({
-          id: Math.random().toString(36),
-          jobId: job.id,
-          jobTitle: job.title,
-          company: job.company,
-          status: ApplicationStatus.APPLIED,
-          matchScore: fit.score,
-          matchReason: fit.reason,
-          coverLetter: coverLetter.coverLetter,
-          timestamp: Date.now()
-        });
-      } else {
-        addLog(`High match found (${fit.score}%). Manual review required.`, 'warning');
-      }
-
-      setProgress(100);
-    } catch (error) {
-      addLog(`Error processing job: ${error}`, 'error');
-    }
-  };
-
   const startAgent = async () => {
     if (isRunning) return;
     setIsRunning(true);
-    addLog("AI Agent initialized. Starting job search...", 'info');
-    
+    addLog("AI Agent initialized. Starting auto-apply workflow...", 'info');
+    setTask("Running auto-apply workflow...");
+
     try {
-      // Simulate finding jobs (in real app, this would call job board APIs)
+      // Use the new backend auto-apply workflow
       const mockJobs: Job[] = [
         {
           id: '1',
@@ -152,7 +92,8 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           description: 'Looking for an experienced frontend developer with React and TypeScript expertise...',
           postedAt: '2 hours ago',
           tags: ['React', 'TypeScript', 'Remote'],
-          logo: '/api/placeholder/64/64'
+          logo: '/api/placeholder/64/64',
+          applicationUrl: 'https://careers.techcorp.com/jobs/senior-frontend-developer'
         },
         {
           id: '2',
@@ -163,37 +104,41 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           description: 'Join our team to build innovative web applications using modern technologies...',
           postedAt: '1 day ago',
           tags: ['Node.js', 'React', 'MongoDB'],
-          logo: '/api/placeholder/64/64'
+          logo: '/api/placeholder/64/64',
+          applicationUrl: 'https://startupxyz.com/careers/full-stack-engineer'
         }
       ];
 
-      const jobsToProcess = mockJobs.filter(job => 
-        !applications.find(app => app.jobId === job.id)
-      );
+      addLog(`Processing ${mockJobs.length} jobs through auto-apply workflow...`, 'info');
+      setProgress(25);
 
-      if (jobsToProcess.length === 0) {
-        addLog("No new matching positions found.", 'warning');
-        setIsRunning(false);
-        setTask("Idle");
-        return;
+      const result = await backendApi.runAutoApply(mockJobs, config.applicationsPerHour);
+
+      setProgress(75);
+      addLog("Auto-apply workflow completed successfully!", 'success');
+
+      // Add the new applications to the state
+      if (result.applications) {
+        result.applications.forEach((app: ApplicationRecord) => addApplication(app));
+        addLog(`Added ${result.applications.length} new applications.`, 'info');
       }
 
-      addLog(`Found ${jobsToProcess.length} new positions to analyze.`, 'info');
-
-      for (const job of jobsToProcess) {
-        if (!isRunning) break;
-        await processJob(job);
-        await new Promise(r => setTimeout(r, 1000)); // Rate limiting
+      // Add workflow logs
+      if (result.logs) {
+        result.logs.forEach((log: AgentLog) => {
+          addLog(log.message, log.type as 'info' | 'success' | 'warning' | 'error');
+        });
       }
+
+      setProgress(100);
 
     } catch (error) {
-      addLog(`Agent error: ${error}`, 'error');
+      addLog(`Auto-apply workflow failed: ${error}`, 'error');
     }
 
     setIsRunning(false);
     setTask("Completed");
     setCurrentJob(null);
-    addLog("Batch processing complete.", 'success');
   };
 
   const stopAgent = () => {
@@ -209,12 +154,12 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
 
   const handleJobSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setTask("Searching jobs...");
     try {
       // Simulate job search API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const mockResults: Job[] = [
         {
           id: 'search-1',
@@ -250,7 +195,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           logo: '/api/placeholder/64/64'
         }
       ];
-      
+
       setSearchResults(mockResults);
       addLog(`Found ${mockResults.length} jobs matching "${searchQuery}"`, 'info');
     } catch (error) {
@@ -403,7 +348,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
                 <input
                   type="number"
                   value={config.matchThreshold}
-                  onChange={(e) => setConfig({...config, matchThreshold: parseInt(e.target.value)})}
+                  onChange={(e) => setConfig({ ...config, matchThreshold: parseInt(e.target.value) })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
                   min="0"
                   max="100"
@@ -414,7 +359,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
                 <input
                   type="number"
                   value={config.applicationsPerHour}
-                  onChange={(e) => setConfig({...config, applicationsPerHour: parseInt(e.target.value)})}
+                  onChange={(e) => setConfig({ ...config, applicationsPerHour: parseInt(e.target.value) })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
                   min="1"
                   max="50"
@@ -425,7 +370,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
                   type="checkbox"
                   id="autoApply"
                   checked={config.autoApply}
-                  onChange={(e) => setConfig({...config, autoApply: e.target.checked})}
+                  onChange={(e) => setConfig({ ...config, autoApply: e.target.checked })}
                   className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label htmlFor="autoApply" className="text-sm font-bold text-gray-900">
@@ -441,7 +386,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           <MetricCard
             title="Jobs Processed"
             value={stats.processed}
-            icon={<Target className="text-blue-600 w-7 h-7"/>}
+            icon={<Target className="text-blue-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-blue-50 to-indigo-50"
             borderColor="border-blue-200"
             trend="Total analyzed"
@@ -450,7 +395,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           <MetricCard
             title="Applications Sent"
             value={stats.applied}
-            icon={<CheckCircle className="text-green-600 w-7 h-7"/>}
+            icon={<CheckCircle className="text-green-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-green-50 to-emerald-50"
             borderColor="border-green-200"
             trend="Successfully submitted"
@@ -459,7 +404,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           <MetricCard
             title="Applications Skipped"
             value={stats.skipped}
-            icon={<AlertTriangle className="text-amber-600 w-7 h-7"/>}
+            icon={<AlertTriangle className="text-amber-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-amber-50 to-orange-50"
             borderColor="border-amber-200"
             trend="Low match criteria"
@@ -468,7 +413,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
           <MetricCard
             title="Success Rate"
             value={`${stats.successRate}%`}
-            icon={<Zap className="text-purple-600 w-7 h-7"/>}
+            icon={<Zap className="text-purple-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-purple-50 to-violet-50"
             borderColor="border-purple-200"
             trend="Conversion rate"
@@ -615,7 +560,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile, applications, addApplica
               {logs.map((log, i) => (
                 <div key={i} className="flex gap-4 group">
                   <span className="text-gray-500 shrink-0 text-xs font-bold bg-gray-800 px-2 py-1 rounded">
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit' })}
+                    {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <span className={clsx(
                     "break-words flex-1 leading-relaxed",

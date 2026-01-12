@@ -29,8 +29,8 @@ const upload = multer({
   }
 });
 
-// Initialize the LangGraph workflow
-const autoApplyWorkflow = new AutoApplyWorkflow(process.env.API_KEY);
+// Initialize the LangGraph workflow (demo mode by default for safety)
+const autoApplyWorkflow = new AutoApplyWorkflow(process.env.API_KEY, process.env.DEMO_MODE !== 'false');
 
 // In-memory storage (replace with database in production)
 let userProfile: UserProfile | null = null;
@@ -166,6 +166,25 @@ app.delete('/api/applications/:id', (req, res) => {
 
   applications.splice(index, 1);
   res.json({ success: true });
+});
+
+// Settings management
+app.get('/api/settings', (_req, res) => {
+  res.json({
+    demoMode: process.env.DEMO_MODE !== 'false',
+    apiKeyConfigured: !!process.env.API_KEY,
+    ollamaUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
+  });
+});
+
+app.post('/api/settings', (req, res) => {
+  const { demoMode } = req.body;
+  if (typeof demoMode === 'boolean') {
+    process.env.DEMO_MODE = demoMode.toString();
+    res.json({ success: true, demoMode });
+  } else {
+    res.status(400).json({ error: 'Invalid demoMode value' });
+  }
 });
 
 // Auto-apply workflow orchestration

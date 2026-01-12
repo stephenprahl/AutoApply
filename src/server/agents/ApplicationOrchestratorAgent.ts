@@ -154,15 +154,14 @@ export class ApplicationOrchestratorAgent {
             for (const job of prioritizedJobs) {
                 if (processedCount >= maxApps) break;
 
-                // In a real implementation, this would trigger the full agent workflow
-                // For now, we'll create placeholder applications
+                // Create application record ready for web automation
                 const application: ApplicationRecord = {
                     id: `${job.id}_${Date.now()}_${processedCount}`,
                     jobId: job.id,
                     jobTitle: job.title,
                     company: job.company,
-                    status: 'PENDING' as const,
-                    matchScore: 75 + Math.random() * 20, // Placeholder score
+                    status: 'READY_TO_SUBMIT' as const, // New status for web automation
+                    matchScore: 75 + Math.random() * 20, // Placeholder score - will be updated by analyzer
                     timestamp: Date.now()
                 };
 

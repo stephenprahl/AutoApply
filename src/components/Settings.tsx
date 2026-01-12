@@ -1,21 +1,21 @@
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle,
+  Download,
+  Eye,
+  EyeOff,
+  Key,
+  Palette,
+  Save,
+  Settings as SettingsIcon,
+  Shield,
+  Trash2,
+  Upload,
+  Zap
+} from 'lucide-react';
 import React, { useState } from 'react';
 import type { UserSettings } from '../types.ts';
-import { 
-  Settings as SettingsIcon, 
-  Bell, 
-  Palette, 
-  Shield, 
-  Zap, 
-  Key, 
-  Save, 
-  Download, 
-  Upload, 
-  Trash2, 
-  Eye, 
-  EyeOff,
-  CheckCircle,
-  AlertTriangle
-} from 'lucide-react';
 
 interface SettingsProps {
   settings: UserSettings;
@@ -155,11 +155,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    activeTab === tab.id
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
                       ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{tab.label}</span>
@@ -175,7 +174,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
           {activeTab === 'notifications' && (
             <div className="p-6 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Notification Preferences</h2>
-              
+
               <div className="space-y-4">
                 {[
                   { key: 'email', label: 'Email Notifications', description: 'Receive updates via email' },
@@ -205,7 +204,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
           {activeTab === 'appearance' && (
             <div className="p-6 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Appearance</h2>
-              
+
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
@@ -256,7 +255,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
           {activeTab === 'privacy' && (
             <div className="p-6 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Privacy & Security</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Profile Visibility</label>
@@ -295,7 +294,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
           {activeTab === 'automation' && (
             <div className="p-6 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Automation Settings</h2>
-              
+
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                   <div>
@@ -307,6 +306,21 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
                     checked={settings.automation.autoApply}
                     onChange={(e) => updateSettings('automation', { autoApply: e.target.checked })}
                     className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-orange-200 bg-orange-50 rounded-lg">
+                  <div>
+                    <h3 className="font-medium text-gray-900">Web Automation Mode</h3>
+                    <p className="text-sm text-gray-600">Enable actual web form filling (currently in demo mode)</p>
+                    <p className="text-xs text-orange-600 mt-1">⚠️ Demo mode simulates applications without real web interactions</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={false} // Always demo mode for safety
+                    disabled={true}
+                    className="w-5 h-5 text-orange-600 rounded opacity-50 cursor-not-allowed"
+                    title="Web automation is currently disabled for safety"
                   />
                 </div>
 
@@ -342,7 +356,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
                       <input
                         type="time"
                         value={settings.automation.workingHours.start}
-                        onChange={(e) => updateSettings('automation', { 
+                        onChange={(e) => updateSettings('automation', {
                           workingHours: { ...settings.automation.workingHours, start: e.target.value }
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -353,7 +367,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
                       <input
                         type="time"
                         value={settings.automation.workingHours.end}
-                        onChange={(e) => updateSettings('automation', { 
+                        onChange={(e) => updateSettings('automation', {
                           workingHours: { ...settings.automation.workingHours, end: e.target.value }
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -378,7 +392,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
                   {showApiKeys ? 'Hide' : 'Show'} Keys
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 {[
                   { key: 'gemini', label: 'Google Gemini API Key', description: 'For AI-powered features' },
@@ -404,7 +418,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
           {activeTab === 'data' && (
             <div className="p-6 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Data Management</h2>
-              
+
               <div className="space-y-4">
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h3 className="font-medium text-gray-900 mb-2">Export Settings</h3>

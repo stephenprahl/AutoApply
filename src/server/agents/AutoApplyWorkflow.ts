@@ -3,6 +3,7 @@ import { ApplicationOrchestratorAgent } from "./ApplicationOrchestratorAgent.js"
 import { CoverLetterAgent } from "./CoverLetterAgent.js";
 import { JobAnalyzerAgent } from "./JobAnalyzerAgent.js";
 import { ResumeParserAgent } from "./ResumeParserAgent.js";
+import { WebAutomationAgent } from "./WebAutomationAgent.js";
 
 // Combined state for the entire workflow
 export interface AutoApplyWorkflowState {
@@ -39,13 +40,15 @@ export class AutoApplyWorkflow {
     private jobAnalyzer: JobAnalyzerAgent;
     private coverLetterAgent: CoverLetterAgent;
     private orchestrator: ApplicationOrchestratorAgent;
+    private webAutomation: WebAutomationAgent;
 
-    constructor(apiKey?: string) {
+    constructor(apiKey?: string, demoMode: boolean = true) {
         // Initialize agents
         this.resumeParser = new ResumeParserAgent(apiKey);
         this.jobAnalyzer = new JobAnalyzerAgent(apiKey);
         this.coverLetterAgent = new CoverLetterAgent(apiKey);
         this.orchestrator = new ApplicationOrchestratorAgent(apiKey);
+        this.webAutomation = new WebAutomationAgent(demoMode);
     }
 
     async run(initialState: Partial<AutoApplyWorkflowState>): Promise<AutoApplyWorkflowState> {
@@ -104,7 +107,7 @@ export class AutoApplyWorkflow {
                 state.logs = orchestrateResult.logs;
             }
 
-            // Step 3: Process each application (simplified for now)
+            // Step 3: Process each application (now with actual submission)
             if (state.applications && state.applications.length > 0 && state.profile) {
                 for (const application of state.applications) {
                     const job = state.jobs?.find(j => j.id === application.jobId);
@@ -138,10 +141,31 @@ export class AutoApplyWorkflow {
                     application.coverLetter = coverLetterResult.coverLetter;
                     state.errors = coverLetterResult.errors;
 
+                    // Submit application online using web automation
                     state.logs!.push({
                         timestamp: Date.now(),
-                        message: `Completed processing for ${job.title}`,
-                        type: "success"
+                        message: `Submitting application online for ${job.title}`,
+                        type: "info"
+                    });
+
+                    const automationResult = await this.webAutomation.process({
+                        application,
+                        profile: state.profile,
+                        job,
+                        status: 'processing',
+                        errors: state.errors,
+                        logs: state.logs
+                    });
+
+                    // Update application status based on automation result
+                    application.status = automationResult.application?.status || 'FAILED';
+                    state.errors = automationResult.errors;
+                    state.logs = automationResult.logs;
+
+                    state.logs!.push({
+                        timestamp: Date.now(),
+                        message: `Completed processing for ${job.title} - Status: ${application.status}`,
+                        type: application.status === 'SUBMITTED' ? "success" : "warning"
                     });
                 }
             }
@@ -153,11 +177,22 @@ export class AutoApplyWorkflow {
                 type: "success"
             });
 
+            // Cleanup web automation resources
+            await this.webAutomation.close();
+
             return state;
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             console.error("Workflow execution error:", error);
+
+            // Cleanup web automation resources even on error
+            try {
+                await this.webAutomation.close();
+            } catch (cleanupError) {
+                console.error("Error during cleanup:", cleanupError);
+            }
+
             return {
                 ...state,
                 status: 'error',

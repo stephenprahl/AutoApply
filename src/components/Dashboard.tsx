@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { Briefcase, CheckCircle, Clock, Download, RefreshCw, Target, TrendingDown, TrendingUp, XCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ApplicationRecord } from '../types.ts';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { ApplicationStatus } from '../types.ts';
-import { CheckCircle, XCircle, Clock, Briefcase, Target, RefreshCw, Download, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface DashboardProps {
   applications: ApplicationRecord[];
@@ -25,7 +25,7 @@ type TimePeriod = '7d' | '30d' | '90d';
 const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('7d');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Filter applications based on time period
   const filteredApplications = useMemo(() => {
     const now = new Date().getTime();
@@ -34,15 +34,18 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
       '30d': 30 * 24 * 60 * 60 * 1000,
       '90d': 90 * 24 * 60 * 60 * 1000
     };
-    
-    return applications.filter(app => 
+
+    return applications.filter(app =>
       now - app.timestamp <= periodMs[selectedPeriod]
     );
   }, [applications, selectedPeriod]);
 
   // Stats Calculation
   const total = filteredApplications.length;
-  const applied = filteredApplications.filter(a => a.status === ApplicationStatus.APPLIED).length;
+  const applied = filteredApplications.filter(a =>
+    a.status === ApplicationStatus.APPLIED ||
+    a.status === ApplicationStatus.SUBMITTED
+  ).length;
   const rejected = filteredApplications.filter(a => a.status === ApplicationStatus.REJECTED).length;
   const pending = filteredApplications.filter(a => a.status === ApplicationStatus.PENDING).length;
   const analyzing = filteredApplications.filter(a => a.status === ApplicationStatus.ANALYZING).length;
@@ -58,10 +61,13 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
 
   // Status breakdown for pie chart
   const statusData = [
-    { name: 'Applied', value: applied, color: '#22c55e' },
+    { name: 'Submitted', value: filteredApplications.filter(a => a.status === ApplicationStatus.SUBMITTED).length, color: '#22c55e' },
+    { name: 'Applied', value: filteredApplications.filter(a => a.status === ApplicationStatus.APPLIED).length, color: '#16a34a' },
     { name: 'Rejected', value: rejected, color: '#ef4444' },
     { name: 'Pending', value: pending, color: '#f59e0b' },
+    { name: 'Ready to Submit', value: filteredApplications.filter(a => a.status === ApplicationStatus.READY_TO_SUBMIT).length, color: '#8b5cf6' },
     { name: 'Analyzing', value: analyzing, color: '#3b82f6' },
+    { name: 'Failed', value: filteredApplications.filter(a => a.status === ApplicationStatus.FAILED).length, color: '#dc2626' },
   ].filter(item => item.value > 0);
 
   // Generate sparkline data for trends
@@ -69,15 +75,15 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
     const days = selectedPeriod === '7d' ? 7 : selectedPeriod === '30d' ? 30 : 90;
     const data = [];
     const now = new Date().getTime();
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const dayStart = now - (i * 24 * 60 * 60 * 1000);
       const dayEnd = dayStart + (24 * 60 * 60 * 1000);
-      
-      const dayApplications = applications.filter(app => 
+
+      const dayApplications = applications.filter(app =>
         app.timestamp >= dayStart && app.timestamp < dayEnd
       );
-      
+
       data.push({
         day: i === 0 ? 'Today' : i === 1 ? 'Yesterday' : `Day ${days - i}`,
         applied: dayApplications.filter(a => a.status === ApplicationStatus.APPLIED).length,
@@ -85,7 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
         total: dayApplications.length
       });
     }
-    
+
     return data;
   }, [applications, selectedPeriod]);
 
@@ -124,7 +130,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
         new Date(app.timestamp).toLocaleDateString()
       ])
     ].map(row => row.join(',')).join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -182,7 +188,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
           <KPICard
             title="Applications Submitted"
             value={applied}
-            icon={<CheckCircle className="text-green-600 w-7 h-7"/>}
+            icon={<CheckCircle className="text-green-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-green-50 to-emerald-50"
             borderColor="border-green-200"
             trend={`${appliedTrend.isPositive ? '+' : '-'}${appliedTrend.value}% from last period`}
@@ -193,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
           <KPICard
             title="Success Rate"
             value={`${successRate}%`}
-            icon={<Target className="text-blue-600 w-7 h-7"/>}
+            icon={<Target className="text-blue-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-blue-50 to-indigo-50"
             borderColor="border-blue-200"
             trend="Above industry average"
@@ -202,7 +208,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
           <KPICard
             title="Applications Rejected"
             value={rejected}
-            icon={<XCircle className="text-red-600 w-7 h-7"/>}
+            icon={<XCircle className="text-red-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-red-50 to-rose-50"
             borderColor="border-red-200"
             trend="Low match criteria"
@@ -213,7 +219,7 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
           <KPICard
             title="Time Saved"
             value={`${(applied * 0.5).toFixed(1)}h`}
-            icon={<Clock className="text-amber-600 w-7 h-7"/>}
+            icon={<Clock className="text-amber-600 w-7 h-7" />}
             bg="bg-gradient-to-br from-amber-50 to-orange-50"
             borderColor="border-amber-200"
             trend="30 mins per application"
@@ -243,22 +249,22 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
             </div>
             <div className="h-[360px] w-full">
               <ResponsiveContainer width="100%" height={360}>
-                <BarChart data={funnelData.length > 0 ? funnelData : [{name: 'No Data', value: 0}]}>
+                <BarChart data={funnelData.length > 0 ? funnelData : [{ name: 'No Data', value: 0 }]}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{fill: '#6b7280', fontSize: 12, fontWeight: 500}}
+                    tick={{ fill: '#6b7280', fontSize: 12, fontWeight: 500 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{fill: '#6b7280', fontSize: 12, fontWeight: 500}}
+                    tick={{ fill: '#6b7280', fontSize: 12, fontWeight: 500 }}
                   />
                   <Tooltip
-                    cursor={{fill: '#f9fafb'}}
+                    cursor={{ fill: '#f9fafb' }}
                     contentStyle={{
                       borderRadius: '8px',
                       border: '1px solid #e5e7eb',
@@ -297,13 +303,12 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
               ) : (
                 [...applications].reverse().slice(0, 8).map((app) => (
                   <div key={app.id} className="flex items-start p-4 rounded-corporate hover:bg-gray-50 transition-colors border border-gray-100 group">
-                    <div className={`mt-1.5 w-3 h-3 rounded-full shrink-0 ${
-                      app.status === ApplicationStatus.APPLIED ? 'bg-green-500' :
-                      app.status === ApplicationStatus.REJECTED ? 'bg-red-400' :
-                      app.status === ApplicationStatus.PENDING ? 'bg-amber-400' :
-                      app.status === ApplicationStatus.ANALYZING ? 'bg-blue-400' :
-                      'bg-gray-400'
-                    }`}></div>
+                    <div className={`mt-1.5 w-3 h-3 rounded-full shrink-0 ${app.status === ApplicationStatus.APPLIED ? 'bg-green-500' :
+                        app.status === ApplicationStatus.REJECTED ? 'bg-red-400' :
+                          app.status === ApplicationStatus.PENDING ? 'bg-amber-400' :
+                            app.status === ApplicationStatus.ANALYZING ? 'bg-blue-400' :
+                              'bg-gray-400'
+                      }`}></div>
                     <div className="ml-4 flex-1">
                       <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">{app.jobTitle}</p>
                       <p className="text-xs text-gray-600 font-medium">{app.company}</p>
@@ -311,9 +316,8 @@ const Dashboard: React.FC<DashboardProps> = ({ applications }) => {
                     </div>
                     <div className="ml-auto text-right">
                       <div className="text-sm font-bold text-gray-900">{app.matchScore}%</div>
-                      <div className={`text-xs font-semibold ${
-                        app.matchScore >= 70 ? 'text-green-700' : 'text-red-600'
-                      }`}>
+                      <div className={`text-xs font-semibold ${app.matchScore >= 70 ? 'text-green-700' : 'text-red-600'
+                        }`}>
                         {app.matchScore >= 70 ? 'Strong Match' : 'Low Match'}
                       </div>
                     </div>
