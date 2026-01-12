@@ -1,4 +1,4 @@
-import { AutoApplyWorkflow } from './src/server/agents/AutoApplyWorkflow.js';
+import { AutoApplyWorkflow } from './server/agents/AutoApplyWorkflow.js';
 
 // Test the LangGraph workflow
 async function testWorkflow() {

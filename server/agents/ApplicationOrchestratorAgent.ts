@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOllama } from "@langchain/ollama";
-import type { ApplicationRecord, Job, UserProfile } from "../../types.js";
+import type { ApplicationRecord, Job, UserProfile } from "../../src/types.js";
 
 export interface ApplicationOrchestratorState {
     profile?: UserProfile;

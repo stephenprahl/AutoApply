@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "tsx src/server/index.ts",
-    "server:dev": "nodemon --exec tsx src/server/index.ts",
+    "server": "tsx server/index.ts",
+    "server:dev": "nodemon --exec tsx server/index.ts",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "test:workflow": "tsx test-workflow.ts"
   },

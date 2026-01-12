@@ -1,4 +1,4 @@
-import type { ApplicationRecord, Job, UserProfile } from "../../types.js";
+import type { ApplicationRecord, Job, UserProfile } from "../../src/types.js";
 import { ApplicationOrchestratorAgent } from "./ApplicationOrchestratorAgent.js";
 import { CoverLetterAgent } from "./CoverLetterAgent.js";
 import { JobAnalyzerAgent } from "./JobAnalyzerAgent.js";

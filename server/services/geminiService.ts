@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOllama } from "@langchain/ollama";
-import type { Job, UserProfile } from '../../types.js';
+import type { Job, UserProfile } from '../../src/types.js';
 
 // Initialize Ollama Client
 const llm = process.env.API_KEY ? new ChatOllama({

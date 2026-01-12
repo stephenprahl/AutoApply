@@ -1,6 +1,6 @@
 import { AlertCircle, BarChart3, BookOpen, CheckCircle, Download, Eye, FileText, Lightbulb, Loader2, RefreshCw, Sparkles, Target, TrendingUp, Zap } from 'lucide-react';
 import React, { useState } from 'react';
-import type { ResumeOptimizationResult } from '../server/services/resumeOptimizer';
+import type { ResumeOptimizationResult } from '../../server/services/resumeOptimizer';
 import { backendApi } from '../services/backendService';
 
 interface ResumeOptimizerProps {
@@ -186,8 +186,8 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                             key={id}
                             onClick={() => setActiveTab(id as any)}
                             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${activeTab === id
-                                    ? 'border-purple-500 text-purple-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-purple-500 text-purple-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             <Icon className="h-4 w-4" />
@@ -204,7 +204,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                         <div>
                             <h4 className="text-lg font-semibold text-gray-900 mb-4">Key Improvements</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {optimizationResult.improvements.map((improvement, index) => (
+                                {optimizationResult.improvements.map((improvement: { category: string; suggestions: string[]; impact: 'high' | 'medium' | 'low' }, index: number) => (
                                     <div key={index} className="p-4 border border-gray-200 rounded-lg">
                                         <div className="flex items-center justify-between mb-3">
                                             <h5 className="font-medium text-gray-900">{improvement.category}</h5>
@@ -213,7 +213,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                             </span>
                                         </div>
                                         <ul className="space-y-2">
-                                            {improvement.suggestions.map((suggestion, idx) => (
+                                            {improvement.suggestions.map((suggestion: string, idx: number) => (
                                                 <li key={idx} className="flex items-start space-x-2 text-sm text-gray-600">
                                                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                                                     <span>{suggestion}</span>
@@ -235,7 +235,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                                     <h5 className="font-medium text-red-900 mb-2">Missing Keywords</h5>
                                     <div className="flex flex-wrap gap-2">
-                                        {optimizationResult.keywordOptimization.missingKeywords.map((keyword, idx) => (
+                                        {optimizationResult.keywordOptimization.missingKeywords.map((keyword: string, idx: number) => (
                                             <span key={idx} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">
                                                 {keyword}
                                             </span>
@@ -245,7 +245,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                                     <h5 className="font-medium text-green-900 mb-2">Recommended Keywords</h5>
                                     <div className="flex flex-wrap gap-2">
-                                        {optimizationResult.keywordOptimization.recommendedKeywords.map((keyword, idx) => (
+                                        {optimizationResult.keywordOptimization.recommendedKeywords.map((keyword: string, idx: number) => (
                                             <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
                                                 {keyword}
                                             </span>
@@ -255,7 +255,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                     <h5 className="font-medium text-yellow-900 mb-2">Overused Keywords</h5>
                                     <div className="flex flex-wrap gap-2">
-                                        {optimizationResult.keywordOptimization.overusedKeywords.map((keyword, idx) => (
+                                        {optimizationResult.keywordOptimization.overusedKeywords.map((keyword: string, idx: number) => (
                                             <span key={idx} className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded">
                                                 {keyword}
                                             </span>
@@ -272,7 +272,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                         <div>
                             <h4 className="text-lg font-semibold text-gray-900 mb-4">Structure Analysis</h4>
                             <div className="space-y-4">
-                                {optimizationResult.structureAnalysis.sections.map((section, index) => (
+                                {optimizationResult.structureAnalysis.sections.map((section: { name: string; score: number; issues: string[]; recommendations: string[] }, index: number) => (
                                     <div key={index} className="p-4 border border-gray-200 rounded-lg">
                                         <div className="flex items-center justify-between mb-3">
                                             <h5 className="font-medium text-gray-900">{section.name}</h5>
@@ -284,7 +284,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                             <div className="mb-3">
                                                 <h6 className="text-sm font-medium text-red-900 mb-2">Issues:</h6>
                                                 <ul className="space-y-1">
-                                                    {section.issues.map((issue, idx) => (
+                                                    {section.issues.map((issue: string, idx: number) => (
                                                         <li key={idx} className="flex items-start space-x-2 text-sm text-red-700">
                                                             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                                             <span>{issue}</span>
@@ -297,7 +297,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                             <div>
                                                 <h6 className="text-sm font-medium text-green-900 mb-2">Recommendations:</h6>
                                                 <ul className="space-y-1">
-                                                    {section.recommendations.map((rec, idx) => (
+                                                    {section.recommendations.map((rec: string, idx: number) => (
                                                         <li key={idx} className="flex items-start space-x-2 text-sm text-green-700">
                                                             <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                                             <span>{rec}</span>
@@ -321,7 +321,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                     <h5 className="font-medium text-blue-900 mb-3">Quantifiable Achievements</h5>
                                     <ul className="space-y-2">
-                                        {optimizationResult.contentEnhancement.quantifiableAchievements.map((achievement, idx) => (
+                                        {optimizationResult.contentEnhancement.quantifiableAchievements.map((achievement: string, idx: number) => (
                                             <li key={idx} className="flex items-start space-x-2 text-sm text-blue-700">
                                                 <TrendingUp className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                                 <span>{achievement}</span>
@@ -332,7 +332,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                                     <h5 className="font-medium text-purple-900 mb-3">Impact Statements</h5>
                                     <ul className="space-y-2">
-                                        {optimizationResult.contentEnhancement.impactStatements.map((statement, idx) => (
+                                        {optimizationResult.contentEnhancement.impactStatements.map((statement: string, idx: number) => (
                                             <li key={idx} className="flex items-start space-x-2 text-sm text-purple-700">
                                                 <Zap className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                                 <span>{statement}</span>
@@ -345,7 +345,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                     <h5 className="font-medium text-yellow-900 mb-3">Skill Gaps Identified</h5>
                                     <div className="flex flex-wrap gap-2">
-                                        {optimizationResult.contentEnhancement.skillGaps.map((skill, idx) => (
+                                        {optimizationResult.contentEnhancement.skillGaps.map((skill: string, idx: number) => (
                                             <span key={idx} className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
                                                 {skill}
                                             </span>
@@ -365,7 +365,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                                     <h5 className="font-medium text-green-900 mb-3">Industry Trends</h5>
                                     <ul className="space-y-2">
-                                        {optimizationResult.marketInsights.industryTrends.map((trend, idx) => (
+                                        {optimizationResult.marketInsights.industryTrends.map((trend: string, idx: number) => (
                                             <li key={idx} className="flex items-start space-x-2 text-sm text-green-700">
                                                 <TrendingUp className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                                 <span>{trend}</span>
@@ -376,7 +376,7 @@ const ResumeOptimizer: React.FC<ResumeOptimizerProps> = ({
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                     <h5 className="font-medium text-blue-900 mb-3">Competitive Skills</h5>
                                     <div className="flex flex-wrap gap-2">
-                                        {optimizationResult.marketInsights.competitiveSkills.map((skill, idx) => (
+                                        {optimizationResult.marketInsights.competitiveSkills.map((skill: string, idx: number) => (
                                             <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded">
                                                 {skill}
                                             </span>

@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import multer from 'multer';
-import type { ApplicationRecord, Job, UserProfile } from '../types.js';
+import type { ApplicationRecord, Job, UserProfile } from '../src/types.js';
 import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow.js';
 import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/geminiService.js';
 import { jobSearchService } from './services/jobSearchService.js';

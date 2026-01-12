@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOllama } from "@langchain/ollama";
-import type { UserProfile } from "../../types.js";
+import type { UserProfile } from "../../src/types.js";
 import { parseResumeFile } from "../services/resumeParser.js";
 
 export interface ResumeParserAgentState {

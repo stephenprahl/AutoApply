@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOllama } from "@langchain/ollama";
-import type { Job, SkillGap, UserProfile } from "../../types.js";
+import type { Job, SkillGap, UserProfile } from "../../src/types.js";
 
 export interface JobAnalyzerAgentState {
     profile?: UserProfile;

@@ -1,6 +1,6 @@
 import type { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright';
-import type { ApplicationRecord, Job, UserProfile } from '../../types.js';
+import type { ApplicationRecord, Job, UserProfile } from '../../src/types.js';
 
 export interface WebAutomationState {
     application?: ApplicationRecord;

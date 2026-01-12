@@ -1,4 +1,4 @@
-import type { Job } from '../../types.js';
+import type { Job } from '../../src/types.js';
 
 export interface JobSearchParams {
     keywords: string[];
