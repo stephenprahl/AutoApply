@@ -49,6 +49,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
   const [showJobSearch, setShowJobSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<Job[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -77,11 +78,11 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
   const startAgent = async () => {
     if (isRunning) return;
     setIsRunning(true);
+    setIsLoading(true);
     addLog("AI Agent initialized. Starting auto-apply workflow...", 'info');
     setTask("Running auto-apply workflow...");
 
     try {
-      // Use the new backend auto-apply workflow
       const mockJobs: Job[] = [
         {
           id: '1',
@@ -117,13 +118,11 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
       setProgress(75);
       addLog("Auto-apply workflow completed successfully!", 'success');
 
-      // Add the new applications to the state
       if (result.applications) {
         result.applications.forEach((app: ApplicationRecord) => addApplication(app));
         addLog(`Added ${result.applications.length} new applications.`, 'info');
       }
 
-      // Add workflow logs
       if (result.logs) {
         result.logs.forEach((log: AgentLog) => {
           addLog(log.message, log.type as 'info' | 'success' | 'warning' | 'error');
@@ -131,18 +130,19 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
       }
 
       setProgress(100);
-
     } catch (error) {
       addLog(`Auto-apply workflow failed: ${error}`, 'error');
     }
 
     setIsRunning(false);
+    setIsLoading(false);
     setTask("Completed");
     setCurrentJob(null);
   };
 
   const stopAgent = () => {
     setIsRunning(false);
+    setIsLoading(false);
     setTask("Stopping...");
     addLog("Agent stopped by user.", 'warning');
   };
@@ -156,8 +156,8 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
     if (!searchQuery.trim()) return;
 
     setTask("Searching jobs...");
+    setIsLoading(true);
     try {
-      // Simulate job search API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const mockResults: Job[] = [
@@ -201,6 +201,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
     } catch (error) {
       addLog(`Search error: ${error}`, 'error');
     }
+    setIsLoading(false);
     setTask("Ready");
   };
 
@@ -212,374 +213,384 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Executive Header */}
-        <div className="bg-white rounded-corporate-lg shadow-corporate border border-gray-200 p-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-1 h-8 bg-gradient-to-b from-blue-600 to-blue-700 rounded-full"></div>
-                <h1 className="text-4xl font-bold text-gray-900 tracking-tight">AI Agent Control Center</h1>
-              </div>
-              <p className="text-lg text-gray-600 font-medium">Intelligent automated job application and matching system</p>
-              <div className="flex items-center gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                  <span className="text-sm text-gray-600 font-medium">
-                    {isRunning ? 'Agent Active' : 'Agent Offline'}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  Last activity: {lastActivity}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowJobSearch(!showJobSearch)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-corporate text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-              >
-                <Search className="w-4 h-4" />
-                Search Jobs
-              </button>
-              <button
-                onClick={() => setShowConfig(!showConfig)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-corporate text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-              >
-                <Settings className="w-4 h-4" />
-                Configuration
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Job Search Panel */}
-        {showJobSearch && (
-          <div className="bg-white rounded-corporate-lg shadow-corporate border border-gray-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
-              <h3 className="text-xl font-bold text-gray-900">Job Search</h3>
-            </div>
-            <div className="flex gap-4 mb-8">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleJobSearch()}
-                  placeholder="Search for jobs by title, company, or keywords..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 font-medium"
-                />
-              </div>
-              <button
-                onClick={handleJobSearch}
-                disabled={!searchQuery.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-corporate hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-sm"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            </div>
-
-            {searchResults.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold text-gray-900">Search Results</h4>
-                  <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                    {searchResults.length} jobs found
-                  </span>
-                </div>
-                {searchResults.map((job) => (
-                  <div key={job.id} className="border border-gray-200 rounded-corporate p-6 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 group">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h5 className="text-lg font-bold text-gray-900 group-hover:text-blue-900 transition-colors">{job.title}</h5>
-                        <div className="flex items-center gap-6 mt-3 text-sm text-gray-600">
-                          <span className="flex items-center gap-2 font-medium">
-                            <Briefcase className="w-4 h-4 text-gray-400" />
-                            {job.company}
-                          </span>
-                          <span className="flex items-center gap-2 font-medium">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            {job.location}
-                          </span>
-                          <span className="flex items-center gap-2 font-medium">
-                            <DollarSign className="w-4 h-4 text-gray-400" />
-                            {job.salary}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                          <span className="flex items-center gap-2 font-medium">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            {job.postedAt}
-                          </span>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          {job.tags.map((tag, index) => (
-                            <span key={index} className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-full font-semibold border border-blue-200">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleJobSelect(job)}
-                        className="ml-6 px-6 py-3 bg-green-600 text-white rounded-corporate hover:bg-green-700 transition-all duration-200 font-semibold shadow-sm hover:shadow-md"
-                      >
-                        Select Job
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Configuration Panel */}
-        {showConfig && (
-          <div className="bg-white rounded-corporate-lg shadow-corporate border border-gray-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
-              <h3 className="text-xl font-bold text-gray-900">Agent Configuration</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-gray-900">Match Threshold (%)</label>
-                <input
-                  type="number"
-                  value={config.matchThreshold}
-                  onChange={(e) => setConfig({ ...config, matchThreshold: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
-                  min="0"
-                  max="100"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-gray-900">Applications per Hour</label>
-                <input
-                  type="number"
-                  value={config.applicationsPerHour}
-                  onChange={(e) => setConfig({ ...config, applicationsPerHour: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
-                  min="1"
-                  max="50"
-                />
-              </div>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="autoApply"
-                  checked={config.autoApply}
-                  onChange={(e) => setConfig({ ...config, autoApply: e.target.checked })}
-                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="autoApply" className="text-sm font-bold text-gray-900">
-                  Auto-apply to matches
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard
-            title="Jobs Processed"
-            value={stats.processed}
-            icon={<Target className="text-blue-600 w-7 h-7" />}
-            bg="bg-gradient-to-br from-blue-50 to-indigo-50"
-            borderColor="border-blue-200"
-            trend="Total analyzed"
-            trendColor="text-blue-700"
-          />
-          <MetricCard
-            title="Applications Sent"
-            value={stats.applied}
-            icon={<CheckCircle className="text-green-600 w-7 h-7" />}
-            bg="bg-gradient-to-br from-green-50 to-emerald-50"
-            borderColor="border-green-200"
-            trend="Successfully submitted"
-            trendColor="text-green-700"
-          />
-          <MetricCard
-            title="Applications Skipped"
-            value={stats.skipped}
-            icon={<AlertTriangle className="text-amber-600 w-7 h-7" />}
-            bg="bg-gradient-to-br from-amber-50 to-orange-50"
-            borderColor="border-amber-200"
-            trend="Low match criteria"
-            trendColor="text-amber-700"
-          />
-          <MetricCard
-            title="Success Rate"
-            value={`${stats.successRate}%`}
-            icon={<Zap className="text-purple-600 w-7 h-7" />}
-            bg="bg-gradient-to-br from-purple-50 to-violet-50"
-            borderColor="border-purple-200"
-            trend="Conversion rate"
-            trendColor="text-purple-700"
-          />
-        </div>
-
-        {/* Main Control Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Agent Status & Current Processing */}
-          <div className="lg:col-span-2 space-y-8">
-
-            {/* Agent Status Card */}
-            <div className="bg-white rounded-corporate-lg shadow-corporate border border-gray-200 p-8">
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Agent Status</h2>
-                  <div className="flex items-center gap-3">
-                    <span className="relative flex h-4 w-4">
-                      {isRunning && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
-                      <span className={clsx("relative inline-flex rounded-full h-4 w-4", isRunning ? "bg-green-500" : "bg-gray-400")}></span>
-                    </span>
-                    <span className="text-lg text-gray-600 font-semibold">
-                      {isRunning ? "Active & Processing" : "Offline"}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">AI Agent Control Center</h1>
+                <p className="text-sm text-gray-600 mt-1">Intelligent automated job application and matching system</p>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                    <span className="text-sm text-gray-600 font-medium">
+                      {isRunning ? 'Agent Active' : 'Agent Offline'}
                     </span>
                   </div>
+                  <div className="text-sm text-gray-500">
+                    Last activity: {lastActivity}
+                  </div>
                 </div>
-
+              </div>
+              <div className="flex items-center gap-4">
                 <button
-                  onClick={toggleAgent}
-                  className={clsx(
-                    "px-8 py-4 rounded-corporate font-bold flex items-center gap-3 transition-all duration-200 shadow-sm hover:shadow-md",
-                    isRunning
-                      ? "bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 hover:border-red-300"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                  )}
+                  onClick={() => setShowJobSearch(!showJobSearch)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  {isRunning ? (
-                    <>
-                      <Pause className="w-5 h-5" /> Stop Agent
-                    </>
+                  <Search className="w-4 h-4 mr-2" />
+                  Search Jobs
+                </button>
+                <button
+                  onClick={() => setShowConfig(!showConfig)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configuration
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Job Search Panel */}
+          {showJobSearch && (
+            <div className="px-6 py-6 border-b border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Job Search</h3>
+              </div>
+              <div className="flex gap-4 mb-6">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleJobSearch()}
+                    placeholder="Search for jobs by title, company, or keywords..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
+                  />
+                </div>
+                <button
+                  onClick={handleJobSearch}
+                  disabled={!searchQuery.trim() || isLoading}
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <Loader className="w-5 h-5 animate-spin mr-2" />
                   ) : (
-                    <>
-                      <Play className="w-5 h-5" /> Start Agent
-                    </>
+                    <Search className="w-5 h-5 mr-2" />
                   )}
+                  Search
                 </button>
               </div>
 
-              {/* Progress Section */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-semibold">Current Task</span>
-                  <span className="text-gray-900 font-bold text-lg">{progress}%</span>
+              {searchResults.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-gray-900">Search Results</h4>
+                    <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full font-medium">
+                      {searchResults.length} jobs found
+                    </span>
+                  </div>
+                  {searchResults.map((job) => (
+                    <div key={job.id} className="border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 group">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h5 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 transition-colors">{job.title}</h5>
+                          <div className="flex items-center gap-6 mt-3 text-sm text-gray-600">
+                            <span className="flex items-center gap-2 font-medium">
+                              <Briefcase className="w-4 h-4 text-gray-400" />
+                              {job.company}
+                            </span>
+                            <span className="flex items-center gap-2 font-medium">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              {job.location}
+                            </span>
+                            <span className="flex items-center gap-2 font-medium">
+                              <DollarSign className="w-4 h-4 text-gray-400" />
+                              {job.salary}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                            <span className="flex items-center gap-2 font-medium">
+                              <Clock className="w-4 h-4 text-gray-400" />
+                              {job.postedAt}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            {job.tags.map((tag, index) => (
+                              <span key={index} className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full font-medium border border-blue-200">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleJobSelect(job)}
+                          className="ml-6 inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        >
+                          Select Job
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-3">
-                  {isRunning && <Loader className="w-5 h-5 animate-spin text-blue-600" />}
-                  <span className="text-gray-900 font-semibold text-lg">{task}</span>
+              )}
+            </div>
+          )}
+
+          {/* Configuration Panel */}
+          {showConfig && (
+            <div className="px-6 py-6 border-b border-gray-200">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-900">Agent Configuration</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Match Threshold (%)</label>
+                  <input
+                    type="number"
+                    value={config.matchThreshold}
+                    onChange={(e) => setConfig({ ...config, matchThreshold: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    min="0"
+                    max="100"
+                  />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 h-3 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
-                  ></div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Applications per Hour</label>
+                  <input
+                    type="number"
+                    value={config.applicationsPerHour}
+                    onChange={(e) => setConfig({ ...config, applicationsPerHour: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    min="1"
+                    max="50"
+                  />
+                </div>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="autoApply"
+                    checked={config.autoApply}
+                    onChange={(e) => setConfig({ ...config, autoApply: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="autoApply" className="text-sm font-medium text-gray-700">
+                    Auto-apply to matches
+                  </label>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Current Job Processing */}
-            <div className="bg-white rounded-corporate-lg shadow-corporate border border-gray-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Search className="w-6 h-6 text-blue-600" />
-                <h3 className="text-xl font-bold text-gray-900">Current Processing</h3>
-              </div>
+          {/* Main Content */}
+          <div className="px-6 py-6">
+            {/* Performance Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <MetricCard
+                title="Jobs Processed"
+                value={stats.processed}
+                icon={<Target className="text-blue-600 w-7 h-7" />}
+                bg="bg-gradient-to-br from-blue-50 to-indigo-50"
+                borderColor="border-blue-200"
+                trend="Total analyzed"
+                trendColor="text-blue-700"
+              />
+              <MetricCard
+                title="Applications Sent"
+                value={stats.applied}
+                icon={<CheckCircle className="text-green-600 w-7 h-7" />}
+                bg="bg-gradient-to-br from-green-50 to-emerald-50"
+                borderColor="border-green-200"
+                trend="Successfully submitted"
+                trendColor="text-green-700"
+              />
+              <MetricCard
+                title="Applications Skipped"
+                value={stats.skipped}
+                icon={<AlertTriangle className="text-amber-600 w-7 h-7" />}
+                bg="bg-gradient-to-br from-amber-50 to-orange-50"
+                borderColor="border-amber-200"
+                trend="Low match criteria"
+                trendColor="text-amber-700"
+              />
+              <MetricCard
+                title="Success Rate"
+                value={`${stats.successRate}%`}
+                icon={<Zap className="text-purple-600 w-7 h-7" />}
+                bg="bg-gradient-to-br from-purple-50 to-violet-50"
+                borderColor="border-purple-200"
+                trend="Conversion rate"
+                trendColor="text-purple-700"
+              />
+            </div>
 
-              {currentJob ? (
-                <div className="border-2 border-gray-200 rounded-corporate p-6 bg-gray-50">
-                  <div className="flex items-start gap-6">
-                    <div className="w-16 h-16 bg-white rounded-corporate flex items-center justify-center border-2 border-gray-200">
-                      <Target className="w-8 h-8 text-gray-400" />
+            {/* Main Control Panel */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Agent Status & Current Processing */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Agent Status Card */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">Agent Status</h2>
+                      <div className="flex items-center gap-3">
+                        <span className="relative flex h-4 w-4">
+                          {isRunning && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
+                          <span className={clsx("relative inline-flex rounded-full h-4 w-4", isRunning ? "bg-green-500" : "bg-gray-400")}></span>
+                        </span>
+                        <span className="text-lg text-gray-600 font-medium">
+                          {isRunning ? "Active & Processing" : "Offline"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h4 className="text-xl font-bold text-gray-900">{currentJob.title}</h4>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-full">
-                          <Star className="w-4 h-4 text-yellow-600 fill-current" />
-                          <span className="text-sm font-bold text-yellow-700">Analyzing Match</span>
+
+                    <button
+                      onClick={toggleAgent}
+                      disabled={isLoading}
+                      className={clsx(
+                        "inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                        isRunning
+                          ? "text-red-700 bg-red-100 border-red-300 hover:bg-red-200 focus:ring-red-500"
+                          : "text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                      )}
+                    >
+                      {isLoading ? (
+                        <Loader className="w-4 h-4 animate-spin mr-2" />
+                      ) : isRunning ? (
+                        <>
+                          <Pause className="w-4 h-4 mr-2" />
+                          Stop Agent
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Agent
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Progress Section */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 font-medium">Current Task</span>
+                      <span className="text-gray-900 font-semibold text-lg">{progress}%</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {isRunning && <Loader className="w-5 h-5 animate-spin text-blue-600" />}
+                      <span className="text-gray-900 font-medium text-lg">{task}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 h-3 rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current Job Processing */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Search className="w-6 h-6 text-blue-600" />
+                    <h3 className="text-xl font-semibold text-gray-900">Current Processing</h3>
+                  </div>
+
+                  {currentJob ? (
+                    <div className="border-2 border-gray-200 rounded-lg p-6 bg-gray-50">
+                      <div className="flex items-start gap-6">
+                        <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center border-2 border-gray-200">
+                          <Target className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h4 className="text-xl font-semibold text-gray-900">{currentJob.title}</h4>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-full">
+                              <Star className="w-4 h-4 text-yellow-600 fill-current" />
+                              <span className="text-sm font-medium text-yellow-700">Analyzing Match</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6 mb-4 text-gray-600">
+                            <span className="flex items-center gap-2 font-medium">
+                              <Briefcase className="w-5 h-5 text-gray-400" />
+                              {currentJob.company}
+                            </span>
+                            <span className="flex items-center gap-2 font-medium">
+                              <MapPin className="w-5 h-5 text-gray-400" />
+                              {currentJob.location}
+                            </span>
+                          </div>
+                          <div className="flex gap-3">
+                            {currentJob.tags?.map(tag => (
+                              <span key={tag} className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 text-sm rounded-full font-medium border border-blue-200">
+                                {tag}
+                              </span>
+                            )) || []}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-6 mb-4 text-gray-600">
-                        <span className="flex items-center gap-2 font-semibold">
-                          <Briefcase className="w-5 h-5 text-gray-400" />
-                          {currentJob.company}
-                        </span>
-                        <span className="flex items-center gap-2 font-semibold">
-                          <MapPin className="w-5 h-5 text-gray-400" />
-                          {currentJob.location}
-                        </span>
-                      </div>
-                      <div className="flex gap-3">
-                        {currentJob.tags?.map(tag => (
-                          <span key={tag} className="px-4 py-2 bg-blue-50 text-blue-700 text-sm rounded-full font-bold border border-blue-200">
-                            {tag}
-                          </span>
-                        )) || []}
-                      </div>
                     </div>
+                  ) : (
+                    <div className="text-center py-16">
+                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Search className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 font-medium text-lg">No job currently processing</p>
+                      <p className="text-gray-400 text-sm mt-2">Search for jobs or start the agent to begin automation</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Enhanced Terminal Logs */}
+              <div className="bg-gray-900 rounded-lg border border-gray-200 p-6 flex flex-col h-[600px]">
+                <div className="flex items-center justify-between pb-4 border-b border-gray-700 mb-4">
+                  <div className="flex items-center text-gray-300">
+                    <Terminal className="w-5 h-5 mr-3" />
+                    <span className="text-lg font-semibold">Agent Logs</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500/30 border border-red-500/50"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/30 border border-yellow-500/50"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/50"></div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Search className="w-10 h-10 text-gray-400" />
-                  </div>
-                  <p className="text-gray-500 font-bold text-lg">No job currently processing</p>
-                  <p className="text-gray-400 text-sm mt-2 font-medium">Search for jobs or start the agent to begin automation</p>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Enhanced Terminal Logs */}
-          <div className="bg-gray-900 rounded-corporate-lg shadow-corporate border border-gray-200 p-6 flex flex-col h-[600px]">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-700 mb-4">
-              <div className="flex items-center text-gray-300">
-                <Terminal className="w-5 h-5 mr-3" />
-                <span className="text-lg font-bold">Agent Logs</span>
-              </div>
-              <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/30 border border-red-500/50"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500/30 border border-yellow-500/50"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/50"></div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 text-sm font-mono">
-              {logs.length === 0 && (
-                <div className="text-gray-500 italic text-center py-8">
-                  <Terminal className="w-8 h-8 mx-auto mb-3 text-gray-600" />
-                  <p className="font-medium">System ready for commands...</p>
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2 text-sm font-mono">
+                  {logs.length === 0 && (
+                    <div className="text-gray-500 italic text-center py-8">
+                      <Terminal className="w-8 h-8 mx-auto mb-3 text-gray-600" />
+                      <p className="font-medium">System ready for commands...</p>
+                    </div>
+                  )}
+                  {logs.map((log, i) => (
+                    <div key={i} className="flex gap-4 group">
+                      <span className="text-gray-500 shrink-0 text-xs font-medium bg-gray-800 px-2 py-1 rounded">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className={clsx(
+                        "break-words flex-1 leading-relaxed",
+                        log.type === 'success' && "text-green-400",
+                        log.type === 'error' && "text-red-400",
+                        log.type === 'warning' && "text-yellow-400",
+                        log.type === 'info' && "text-blue-300",
+                      )}>
+                        <span className="font-medium mr-2">
+                          {log.type === 'success' && "✓"}
+                          {log.type === 'error' && "✗"}
+                          {log.type === 'warning' && "⚠"}
+                          {log.type === 'info' && "ℹ"}
+                        </span>
+                        {log.message}
+                      </span>
+                    </div>
+                  ))}
+                  <div ref={logsEndRef} />
                 </div>
-              )}
-              {logs.map((log, i) => (
-                <div key={i} className="flex gap-4 group">
-                  <span className="text-gray-500 shrink-0 text-xs font-bold bg-gray-800 px-2 py-1 rounded">
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span className={clsx(
-                    "break-words flex-1 leading-relaxed",
-                    log.type === 'success' && "text-green-400",
-                    log.type === 'error' && "text-red-400",
-                    log.type === 'warning' && "text-yellow-400",
-                    log.type === 'info' && "text-blue-300",
-                  )}>
-                    <span className="font-bold mr-2">
-                      {log.type === 'success' && "✓"}
-                      {log.type === 'error' && "✗"}
-                      {log.type === 'warning' && "⚠"}
-                      {log.type === 'info' && "ℹ"}
-                    </span>
-                    {log.message}
-                  </span>
-                </div>
-              ))}
-              <div ref={logsEndRef} />
+              </div>
             </div>
           </div>
         </div>
@@ -603,19 +614,19 @@ interface MetricCardProps {
 
 const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, bg, borderColor, trend, trendColor }) => {
   return (
-    <div className={`bg-white p-6 rounded-corporate-lg shadow-corporate border ${borderColor} hover:shadow-corporate-lg transition-all duration-200 group`}>
+    <div className={`bg-white p-6 rounded-lg border ${borderColor} hover:shadow-md transition-all duration-200 group`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <p className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-2">{title}</p>
+          <p className="text-sm font-medium text-gray-900 uppercase tracking-wide mb-2">{title}</p>
           <h3 className="text-3xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">{value}</h3>
         </div>
-        <div className={`p-4 rounded-corporate-lg ${bg} border border-gray-200 group-hover:scale-105 transition-transform duration-200`}>
+        <div className={`p-4 rounded-lg ${bg} border border-gray-200 group-hover:scale-105 transition-transform duration-200`}>
           {icon}
         </div>
       </div>
 
       <div className="flex items-center">
-        <p className={`text-sm font-semibold ${trendColor}`}>
+        <p className={`text-sm font-medium ${trendColor}`}>
           {trend}
         </p>
       </div>

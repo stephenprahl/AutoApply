@@ -1,12 +1,12 @@
 import cors from 'cors';
 import express from 'express';
 import multer from 'multer';
-import type { ApplicationRecord, Job, UserProfile } from '../src/types.js';
-import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow.js';
-import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/geminiService.js';
-import { jobSearchService } from './services/jobSearchService.js';
-import { analyzeJobFit as analyzeResumeJobFit, optimizeResumeAdvanced } from './services/resumeOptimizer.js';
-import { parseResumeFile } from './services/resumeParser.js';
+import type { ApplicationRecord, Job, UserProfile } from '../src/types';
+import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow';
+import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/ollamaService';
+import { jobSearchService } from './services/jobSearchService';
+import { analyzeJobFit as analyzeResumeJobFit, optimizeResumeAdvanced } from './services/resumeOptimizer';
+import { parseResumeFile } from './services/resumeParser';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
