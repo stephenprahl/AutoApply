@@ -131,6 +131,35 @@ export const backendApi = {
     return response.json();
   },
 
+  // Job search
+  async searchJobs(params: { keywords: string[]; location: string; remote: boolean; salaryMin?: number; jobType?: string; limit?: number }) {
+    const response = await fetch(`${API_BASE_URL}/jobs/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) throw new Error('Failed to search jobs');
+    return response.json();
+  },
+
+  async getTrendingJobs(limit?: number) {
+    const url = new URL(`${API_BASE_URL}/jobs/trending`);
+    if (limit) url.searchParams.set('limit', limit.toString());
+
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Failed to fetch trending jobs');
+    return response.json();
+  },
+
+  async getSimilarJobs(jobId: string, limit?: number) {
+    const url = new URL(`${API_BASE_URL}/jobs/similar/${jobId}`);
+    if (limit) url.searchParams.set('limit', limit.toString());
+
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Failed to fetch similar jobs');
+    return response.json();
+  },
+
   // Health check
   async healthCheck() {
     const response = await fetch(`${API_BASE_URL}/health`);

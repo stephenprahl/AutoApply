@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import type { Job, UserProfile, ApplicationRecord } from '../types.ts';
-import { Star, MapPin, DollarSign, Clock, Briefcase, TrendingUp, ExternalLink, CheckCircle, X } from 'lucide-react';
+import { Briefcase, CheckCircle, Clock, DollarSign, ExternalLink, MapPin, RefreshCw, Search, Star, TrendingUp, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { backendApi } from '../services/backendService.ts';
+import type { ApplicationRecord, Job, UserProfile } from '../types.ts';
 
 interface JobRecommendationsProps {
   profile: UserProfile;
@@ -11,11 +12,53 @@ interface JobRecommendationsProps {
 const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applications, onSelectJob }) => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'recommended' | 'new' | 'trending'>('recommended');
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useState({
+    keywords: profile.skills.slice(0, 3),
+    location: 'Remote',
+    remote: profile.preferences.remote
+  });
 
-  // Mock job data - in real app, this would come from an API
-  const mockJobs: Job[] = [
+  // Fetch jobs based on category and search params
+  const fetchJobs = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let response;
+
+      switch (selectedCategory) {
+        case 'trending':
+          response = await backendApi.getTrendingJobs();
+          break;
+        case 'recommended':
+        case 'all':
+        default:
+          response = await backendApi.searchJobs(searchParams);
+          break;
+      }
+
+      setJobs(response.jobs || []);
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err);
+      setError('Failed to load jobs. Please try again.');
+      // Fallback to mock data if API fails
+      setJobs(getMockJobs());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, [selectedCategory, searchParams]);
+
+  // Mock jobs as fallback
+  const getMockJobs = (): Job[] => [
     {
-      id: 'rec-1',
+      id: 'fallback-1',
       title: 'Senior Frontend Developer',
       company: 'TechCorp',
       location: 'Remote',
@@ -26,7 +69,7 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
       logo: '/api/placeholder/64/64'
     },
     {
-      id: 'rec-2',
+      id: 'fallback-2',
       title: 'Full Stack Engineer',
       company: 'StartupXYZ',
       location: 'San Francisco, CA',
@@ -35,78 +78,45 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
       postedAt: '1 day ago',
       tags: ['Node.js', 'React', 'MongoDB', 'Startup'],
       logo: '/api/placeholder/64/64'
-    },
-    {
-      id: 'rec-3',
-      title: 'React Developer',
-      company: 'Digital Agency',
-      location: 'New York, NY',
-      salary: '$90k - $120k',
-      description: 'We are looking for a talented React developer to join our creative team. You will work on various client projects and help shape the future of web development.',
-      postedAt: '3 days ago',
-      tags: ['React', 'JavaScript', 'CSS', 'Agency'],
-      logo: '/api/placeholder/64/64'
-    },
-    {
-      id: 'rec-4',
-      title: 'Frontend Engineer',
-      company: 'Enterprise Corp',
-      location: 'Remote',
-      salary: '$130k - $170k',
-      description: 'Large enterprise seeking experienced Frontend Engineer to work on mission-critical applications. Great benefits and work-life balance.',
-      postedAt: '5 hours ago',
-      tags: ['React', 'TypeScript', 'Enterprise', 'Benefits'],
-      logo: '/api/placeholder/64/64'
-    },
-    {
-      id: 'rec-5',
-      title: 'UI/UX Developer',
-      company: 'Design Studio',
-      location: 'Remote',
-      salary: '$85k - $110k',
-      description: 'Perfect role for someone who loves both design and code. You will work closely with our design team to bring beautiful interfaces to life.',
-      postedAt: '1 week ago',
-      tags: ['UI/UX', 'React', 'Design', 'Creative'],
-      logo: '/api/placeholder/64/64'
     }
   ];
 
   // Calculate match score based on profile
   const calculateMatchScore = (job: Job): number => {
     let score = 50; // Base score
-    
+
     // Skill matching
     const jobSkills = job.tags.map(tag => tag.toLowerCase());
     const userSkills = profile.skills.map(skill => skill.toLowerCase());
-    const matchingSkills = jobSkills.filter(skill => 
+    const matchingSkills = jobSkills.filter(skill =>
       userSkills.some(userSkill => skill.includes(userSkill) || userSkill.includes(skill))
     );
     score += matchingSkills.length * 10;
-    
+
     // Experience level matching
     if (job.title.toLowerCase().includes('senior') && parseInt(profile.experience) >= 3) {
       score += 15;
     } else if (job.title.toLowerCase().includes('junior') && parseInt(profile.experience) < 3) {
       score += 15;
     }
-    
+
     // Remote preference
     if (profile.preferences.remote && job.location.toLowerCase().includes('remote')) {
       score += 10;
     }
-    
+
     // Salary preference
     const salaryNum = parseInt(job.salary.replace(/[^0-9]/g, ''));
     if (salaryNum >= profile.preferences.minSalary) {
       score += 10;
     }
-    
+
     return Math.min(score, 100);
   };
 
   // Filter jobs based on category
   const filteredJobs = useMemo(() => {
-    const jobsWithScore = mockJobs.map(job => ({
+    const jobsWithScore = jobs.map(job => ({
       ...job,
       matchScore: calculateMatchScore(job),
       isApplied: applications.some(app => app.jobId === job.id)
@@ -122,13 +132,13 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
       default:
         return jobsWithScore;
     }
-  }, [selectedCategory, applications, profile]);
+  }, [selectedCategory, jobs, applications, profile]);
 
   const categories = [
-    { id: 'all', label: 'All Jobs', count: mockJobs.length },
-    { id: 'recommended', label: 'Recommended', count: filteredJobs.filter(j => calculateMatchScore(j) >= 70).length },
-    { id: 'new', label: 'New', count: mockJobs.filter(j => j.postedAt.includes('hour') || j.postedAt.includes('day')).length },
-    { id: 'trending', label: 'Trending', count: mockJobs.filter(j => j.tags.includes('React')).length }
+    { id: 'all', label: 'All Jobs', count: jobs.length },
+    { id: 'recommended', label: 'Recommended', count: jobs.filter(j => calculateMatchScore(j) >= 70).length },
+    { id: 'new', label: 'New', count: jobs.filter(j => j.postedAt.includes('hour') || j.postedAt.includes('day')).length },
+    { id: 'trending', label: 'Trending', count: jobs.filter(j => j.tags.includes('React') || j.tags.includes('TypeScript')).length }
   ];
 
   const getMatchColor = (score: number) => {
@@ -145,10 +155,67 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
           <h2 className="text-2xl font-semibold text-gray-900">Job Recommendations</h2>
           <p className="text-gray-600 mt-1">Personalized opportunities based on your profile</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <TrendingUp className="w-4 h-4" />
-          <span>Updated 2 hours ago</span>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={fetchJobs}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <TrendingUp className="w-4 h-4" />
+            <span>Updated {new Date().toLocaleTimeString()}</span>
+          </div>
         </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="e.g., React, TypeScript, Node.js"
+                value={searchParams.keywords.join(', ')}
+                onChange={(e) => setSearchParams(prev => ({
+                  ...prev,
+                  keywords: e.target.value.split(',').map(k => k.trim()).filter(k => k)
+                }))}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          <div className="w-48">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <input
+              type="text"
+              placeholder="City, State or Remote"
+              value={searchParams.location}
+              onChange={(e) => setSearchParams(prev => ({ ...prev, location: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="remote"
+              checked={searchParams.remote}
+              onChange={(e) => setSearchParams(prev => ({ ...prev, remote: e.target.checked }))}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="remote" className="text-sm font-medium text-gray-700">Remote only</label>
+          </div>
+        </div>
+        {error && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
       </div>
 
       {/* Category Tabs */}
@@ -157,11 +224,10 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
           <button
             key={category.id}
             onClick={() => setSelectedCategory(category.id as any)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              selectedCategory === category.id
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${selectedCategory === category.id
                 ? 'text-blue-600 border-blue-600'
                 : 'text-gray-600 border-transparent hover:text-gray-900'
-            }`}
+              }`}
           >
             {category.label}
             <span className="ml-2 px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs">
@@ -202,7 +268,7 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
                           </span>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                         <span className="flex items-center gap-1">
                           <Briefcase className="w-4 h-4" />
@@ -257,7 +323,7 @@ const JobRecommendations: React.FC<JobRecommendationsProps> = ({ profile, applic
                       </>
                     )}
                   </button>
-                  
+
                   {!job.isApplied && (
                     <button
                       onClick={() => onSelectJob(job)}

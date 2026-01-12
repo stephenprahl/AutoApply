@@ -4,6 +4,7 @@ import multer from 'multer';
 import type { ApplicationRecord, Job, UserProfile } from '../types.js';
 import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow.js';
 import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/geminiService.js';
+import { jobSearchService } from './services/jobSearchService.js';
 import { parseResumeFile } from './services/resumeParser.js';
 
 const app = express();
@@ -247,6 +248,75 @@ app.post('/api/auto-apply', upload.single('resume'), async (req, res) => {
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Job search endpoints
+app.post('/api/jobs/search', async (req, res) => {
+  try {
+    const { keywords, location, remote, salaryMin, jobType, limit } = req.body;
+
+    const searchParams = {
+      keywords: Array.isArray(keywords) ? keywords : [keywords || 'developer'],
+      location: location || 'Remote',
+      remote: remote || false,
+      salaryMin: salaryMin || 0,
+      jobType: jobType || 'full-time',
+      limit: limit || 50
+    };
+
+    const results = await jobSearchService.searchJobs(searchParams);
+
+    // Combine results from all sources
+    const allJobs = results.flatMap(result => result.jobs);
+    const totalCount = results.reduce((sum, result) => sum + result.totalCount, 0);
+
+    res.json({
+      jobs: allJobs,
+      totalCount,
+      sources: results.map(r => ({ source: r.source, count: r.jobs.length }))
+    });
+  } catch (error) {
+    console.error('Job search error:', error);
+    res.status(500).json({ error: 'Failed to search jobs' });
+  }
+});
+
+app.get('/api/jobs/trending', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const jobs = await jobSearchService.getTrendingJobs(limit);
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Trending jobs error:', error);
+    res.status(500).json({ error: 'Failed to get trending jobs' });
+  }
+});
+
+app.post('/api/jobs/similar/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 5;
+
+    // Find the job in our stored applications or search results
+    // For now, we'll create a mock job based on the ID
+    const mockJob: Job = {
+      id: jobId,
+      title: 'Sample Job',
+      company: 'Sample Company',
+      location: 'Remote',
+      salary: '$100k - $150k',
+      description: 'Sample job description',
+      postedAt: '1 day ago',
+      tags: ['React', 'TypeScript'],
+      logo: '/api/placeholder/64/64'
+    };
+
+    const similarJobs = await jobSearchService.getSimilarJobs(mockJob, limit);
+    res.json({ jobs: similarJobs });
+  } catch (error) {
+    console.error('Similar jobs error:', error);
+    res.status(500).json({ error: 'Failed to get similar jobs' });
+  }
 });
 
 // Start server
