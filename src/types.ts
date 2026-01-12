@@ -14,6 +14,39 @@ export interface UserProfile {
     remote: boolean;
     minSalary: number;
   };
+  workExperience?: WorkExperience[];
+  education?: Education[];
+  portfolio?: PortfolioLinks;
+}
+
+export interface WorkExperience {
+  id: string;
+  company: string;
+  position: string;
+  startDate: string;
+  endDate?: string;
+  current: boolean;
+  description: string;
+  location?: string;
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  field: string;
+  startDate: string;
+  endDate?: string;
+  current: boolean;
+  gpa?: string;
+}
+
+export interface PortfolioLinks {
+  github?: string;
+  linkedin?: string;
+  portfolio?: string;
+  website?: string;
+  twitter?: string;
 }
 
 export interface Job {
@@ -63,4 +96,37 @@ export interface SkillGap {
   strong: string[];
   recommended: string[];
   analysis: string;
+}
+
+export interface UserSettings {
+  notifications: {
+    email: boolean;
+    push: boolean;
+    applicationUpdates: boolean;
+    jobRecommendations: boolean;
+    weeklyReports: boolean;
+  };
+  appearance: {
+    theme: 'light' | 'dark' | 'system';
+    language: string;
+    timezone: string;
+  };
+  privacy: {
+    profileVisibility: 'public' | 'private';
+    dataSharing: boolean;
+    analytics: boolean;
+  };
+  automation: {
+    autoApply: boolean;
+    dailyApplicationLimit: number;
+    workingHours: {
+      start: string;
+      end: string;
+    };
+    matchThreshold: number;
+  };
+  apiKeys: {
+    gemini?: string;
+    openai?: string;
+  };
 }

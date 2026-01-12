@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, User, Briefcase, Zap } from 'lucide-react';
+import { LayoutDashboard, User, Briefcase, Zap, Building2, Star, Cog } from 'lucide-react';
 import clsx from 'clsx';
 
 interface SidebarProps {
@@ -10,21 +10,25 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'agent', label: 'Auto Agent', icon: Zap },
-    { id: 'profile', label: 'My Profile', icon: User },
+    { id: 'recommendations', label: 'Recommendations', icon: Star },
+    { id: 'agent', label: 'AI Agent', icon: Zap },
+    { id: 'profile', label: 'Profile', icon: User },
     { id: 'history', label: 'Applications', icon: Briefcase },
+    { id: 'settings', label: 'Settings', icon: Cog },
   ];
 
   return (
-    <aside className="w-20 lg:w-64 bg-white border-r border-slate-200 h-screen flex flex-col fixed left-0 top-0 z-10 transition-all duration-300">
-      <div className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-100">
-        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
-          <Zap className="text-white w-5 h-5" />
+    <aside className="w-20 lg:w-64 bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0 z-10 transition-all duration-300">
+      {/* Header */}
+      <div className="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-gray-100">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-corporate">
+          <Building2 className="text-white w-5 h-5" />
         </div>
-        <span className="hidden lg:block ml-3 font-bold text-lg text-slate-800 tracking-tight">AutoApply</span>
+        <span className="hidden lg:block ml-3 font-semibold text-lg text-gray-900 tracking-tight">CareerFlow Pro</span>
       </div>
 
-      <nav className="flex-1 py-6 flex flex-col gap-2 px-3">
+      {/* Navigation */}
+      <nav className="flex-1 py-6 flex flex-col gap-1 px-3">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -33,30 +37,34 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
               key={item.id}
               onClick={() => setCurrentView(item.id)}
               className={clsx(
-                "flex items-center p-3 rounded-xl transition-all duration-200 group",
+                "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group font-medium text-sm",
                 isActive 
-                  ? "bg-indigo-50 text-indigo-600 shadow-sm" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600" 
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               )}
             >
-              <Icon className={clsx("w-6 h-6", isActive ? "stroke-2" : "stroke-1-5")} />
-              <span className={clsx("hidden lg:block ml-3 font-medium")}>{item.label}</span>
+              <Icon className={clsx("w-5 h-5", isActive ? "text-blue-600" : "text-gray-500")} />
+              <span className={clsx("hidden lg:block ml-3")}>{item.label}</span>
               {isActive && (
-                <div className="hidden lg:block ml-auto w-1-5 h-1-5 rounded-full bg-indigo-600"></div>
+                <div className="hidden lg:block ml-auto w-2 h-2 rounded-full bg-blue-600"></div>
               )}
             </button>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-100">
-        <div className="flex items-center p-2 rounded-lg bg-slate-50 border border-slate-100">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-100">
+        <div className="flex items-center p-3 rounded-lg bg-gray-50 border border-gray-200">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-xs">
             JD
           </div>
           <div className="hidden lg:block ml-3">
-            <p className="text-sm font-medium text-slate-700">John Doe</p>
-            <p className="text-xs text-slate-400">Pro Plan</p>
+            <p className="text-sm font-medium text-gray-900">John Doe</p>
+            <p className="text-xs text-gray-500">Enterprise Plan</p>
+          </div>
+          <div className="hidden lg:block ml-auto">
+            <Cog className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
           </div>
         </div>
       </div>
