@@ -2,6 +2,7 @@ import { AlertCircle, CheckCircle, Edit, ExternalLink, Eye, FileText, Loader2, P
 import React, { useMemo, useState } from 'react';
 import { backendApi } from '../services/backendService.ts';
 import type { Education, PortfolioLinks, UserProfile, WorkExperience } from '../types.ts';
+import ResumeOptimizer from './ResumeOptimizer.tsx';
 import SkillGapAnalysis from './SkillGapAnalysis.tsx';
 
 interface ProfileSetupProps {
@@ -14,6 +15,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ profile, setProfile }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>('');
   const [showSkillAnalysis, setShowSkillAnalysis] = useState(false);
+  const [showAdvancedOptimizer, setShowAdvancedOptimizer] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [activeTab, setActiveTab] = useState<'basic' | 'experience' | 'education' | 'portfolio'>('basic');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -93,6 +95,14 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ profile, setProfile }) => {
     } finally {
       setIsOptimizing(false);
     }
+  };
+
+  const handleAdvancedOptimize = (optimizedResume: string) => {
+    setProfile({
+      ...profile,
+      resumeText: optimizedResume
+    });
+    setShowAdvancedOptimizer(false);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,7 +224,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ profile, setProfile }) => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full transition-all duration-500 ${completionPercentage >= 80 ? 'bg-green-500' :
-                      completionPercentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                    completionPercentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
                   style={{ width: `${completionPercentage}%` }}
                 ></div>
@@ -427,8 +437,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ profile, setProfile }) => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === tab.id
-                        ? 'text-indigo-600 border-indigo-600'
-                        : 'text-slate-500 border-transparent hover:text-slate-700 hover:border-slate-300'
+                      ? 'text-indigo-600 border-indigo-600'
+                      : 'text-slate-500 border-transparent hover:text-slate-700 hover:border-slate-300'
                       }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -557,6 +567,14 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ profile, setProfile }) => {
                         {isOptimizing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
                         AI Extract
                       </button>
+                      <button
+                        onClick={() => setShowAdvancedOptimizer(!showAdvancedOptimizer)}
+                        disabled={!profile.resumeText}
+                        className="text-xs flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-100 transition-colors disabled:opacity-50"
+                      >
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Advanced Optimize
+                      </button>
                     </div>
                   </div>
 
@@ -615,6 +633,18 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ profile, setProfile }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Advanced Resume Optimizer */}
+              {showAdvancedOptimizer && (
+                <div className="mt-6">
+                  <ResumeOptimizer
+                    resumeText={profile.resumeText}
+                    onOptimized={handleAdvancedOptimize}
+                    targetJob={profile.title}
+                    industry={profile.experience}
+                  />
+                </div>
+              )}
             </div>
           )}
 

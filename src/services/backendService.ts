@@ -64,6 +64,28 @@ export const backendApi = {
     return response.json();
   },
 
+  // Advanced resume optimization
+  async optimizeResumeAdvanced(resumeText: string, targetJob?: string, industry?: string) {
+    const response = await fetch(`${API_BASE_URL}/optimize-resume-advanced`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumeText, targetJob, industry }),
+    });
+    if (!response.ok) throw new Error('Failed to optimize resume');
+    return response.json();
+  },
+
+  // Resume job fit analysis
+  async analyzeResumeJobFit(resumeText: string, jobDescription: string) {
+    const response = await fetch(`${API_BASE_URL}/analyze-resume-job-fit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumeText, jobDescription }),
+    });
+    if (!response.ok) throw new Error('Failed to analyze job fit');
+    return response.json();
+  },
+
   // Application management
   async getApplications() {
     const response = await fetch(`${API_BASE_URL}/applications`);

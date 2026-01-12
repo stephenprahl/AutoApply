@@ -5,6 +5,7 @@ import type { ApplicationRecord, Job, UserProfile } from '../types.js';
 import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow.js';
 import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/geminiService.js';
 import { jobSearchService } from './services/jobSearchService.js';
+import { analyzeJobFit as analyzeResumeJobFit, optimizeResumeAdvanced } from './services/resumeOptimizer.js';
 import { parseResumeFile } from './services/resumeParser.js';
 
 const app = express();
@@ -126,6 +127,40 @@ app.post('/api/optimize-profile', async (req, res) => {
   } catch (error) {
     console.error('Profile optimization error:', error);
     res.status(500).json({ error: 'Failed to optimize profile' });
+  }
+});
+
+// Advanced resume optimization
+app.post('/api/optimize-resume-advanced', async (req, res) => {
+  try {
+    const { resumeText, targetJob, industry } = req.body;
+
+    if (!resumeText) {
+      return res.status(400).json({ error: 'Resume text is required' });
+    }
+
+    const result = await optimizeResumeAdvanced(resumeText, targetJob, industry);
+    res.json(result);
+  } catch (error) {
+    console.error('Advanced resume optimization error:', error);
+    res.status(500).json({ error: 'Failed to optimize resume' });
+  }
+});
+
+// Resume job fit analysis
+app.post('/api/analyze-resume-job-fit', async (req, res) => {
+  try {
+    const { resumeText, jobDescription } = req.body;
+
+    if (!resumeText || !jobDescription) {
+      return res.status(400).json({ error: 'Resume text and job description are required' });
+    }
+
+    const result = await analyzeResumeJobFit(resumeText, jobDescription);
+    res.json(result);
+  } catch (error) {
+    console.error('Resume job fit analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze job fit' });
   }
 });
 
