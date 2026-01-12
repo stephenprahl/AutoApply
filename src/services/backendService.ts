@@ -64,6 +64,28 @@ export const backendApi = {
     return response.json();
   },
 
+  // Advanced resume optimization
+  async optimizeResumeAdvanced(resumeText: string, targetJob?: string, industry?: string) {
+    const response = await fetch(`${API_BASE_URL}/optimize-resume-advanced`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumeText, targetJob, industry }),
+    });
+    if (!response.ok) throw new Error('Failed to optimize resume');
+    return response.json();
+  },
+
+  // Resume job fit analysis
+  async analyzeResumeJobFit(resumeText: string, jobDescription: string) {
+    const response = await fetch(`${API_BASE_URL}/analyze-resume-job-fit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumeText, jobDescription }),
+    });
+    if (!response.ok) throw new Error('Failed to analyze job fit');
+    return response.json();
+  },
+
   // Application management
   async getApplications() {
     const response = await fetch(`${API_BASE_URL}/applications`);
@@ -96,6 +118,67 @@ export const backendApi = {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete application');
+    return response.json();
+  },
+
+  // Auto-apply workflow
+  async runAutoApply(jobs: any[], maxApplications?: number, resume?: File) {
+    const formData = new FormData();
+    formData.append('jobs', JSON.stringify(jobs));
+    if (maxApplications) formData.append('maxApplications', maxApplications.toString());
+    if (resume) formData.append('resume', resume);
+
+    const response = await fetch(`${API_BASE_URL}/auto-apply`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('Failed to run auto-apply workflow');
+    return response.json();
+  },
+
+  // Settings management
+  async getSettings() {
+    const response = await fetch(`${API_BASE_URL}/settings`);
+    if (!response.ok) throw new Error('Failed to fetch settings');
+    return response.json();
+  },
+
+  async updateSettings(settings: any) {
+    const response = await fetch(`${API_BASE_URL}/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) throw new Error('Failed to update settings');
+    return response.json();
+  },
+
+  // Job search
+  async searchJobs(params: { keywords: string[]; location: string; remote: boolean; salaryMin?: number; jobType?: string; limit?: number }) {
+    const response = await fetch(`${API_BASE_URL}/jobs/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) throw new Error('Failed to search jobs');
+    return response.json();
+  },
+
+  async getTrendingJobs(limit?: number) {
+    const url = new URL(`${API_BASE_URL}/jobs/trending`);
+    if (limit) url.searchParams.set('limit', limit.toString());
+
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Failed to fetch trending jobs');
+    return response.json();
+  },
+
+  async getSimilarJobs(jobId: string, limit?: number) {
+    const url = new URL(`${API_BASE_URL}/jobs/similar/${jobId}`);
+    if (limit) url.searchParams.set('limit', limit.toString());
+
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Failed to fetch similar jobs');
     return response.json();
   },
 

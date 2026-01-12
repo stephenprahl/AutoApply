@@ -1,4 +1,4 @@
-import { AutoApplyWorkflow } from './src/server/agents/AutoApplyWorkflow.js';
+import { AutoApplyWorkflow } from './server/agents/AutoApplyWorkflow.js';
 
 // Test the LangGraph workflow
 async function testWorkflow() {
@@ -20,7 +20,8 @@ async function testWorkflow() {
             description: 'We are looking for a senior software engineer with experience in React, Node.js, and cloud technologies.',
             postedAt: new Date().toISOString(),
             tags: ['React', 'Node.js', 'AWS', 'TypeScript'],
-            logo: 'https://example.com/logo.png'
+            logo: 'https://example.com/logo.png',
+            applicationUrl: 'https://careers.techcorp.com/jobs/senior-software-engineer'
         },
         {
             id: 'job2',
@@ -31,7 +32,8 @@ async function testWorkflow() {
             description: 'Join our fast-growing startup as a full stack developer. Experience with modern web technologies required.',
             postedAt: new Date().toISOString(),
             tags: ['JavaScript', 'Python', 'PostgreSQL', 'Docker'],
-            logo: 'https://example.com/logo2.png'
+            logo: 'https://example.com/logo2.png',
+            applicationUrl: 'https://startupinc.bamboohr.com/careers/456'
         }
     ];
 

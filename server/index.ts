@@ -1,9 +1,11 @@
 import cors from 'cors';
 import express from 'express';
 import multer from 'multer';
-import type { ApplicationRecord, Job, UserProfile } from '../types.js';
+import type { ApplicationRecord, Job, UserProfile } from '../src/types.js';
 import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow.js';
 import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/geminiService.js';
+import { jobSearchService } from './services/jobSearchService.js';
+import { analyzeJobFit as analyzeResumeJobFit, optimizeResumeAdvanced } from './services/resumeOptimizer.js';
 import { parseResumeFile } from './services/resumeParser.js';
 
 const app = express();
@@ -29,8 +31,8 @@ const upload = multer({
   }
 });
 
-// Initialize the LangGraph workflow
-const autoApplyWorkflow = new AutoApplyWorkflow(process.env.API_KEY);
+// Initialize the LangGraph workflow (demo mode by default for safety)
+const autoApplyWorkflow = new AutoApplyWorkflow(process.env.API_KEY, process.env.DEMO_MODE !== 'false');
 
 // In-memory storage (replace with database in production)
 let userProfile: UserProfile | null = null;
@@ -128,6 +130,40 @@ app.post('/api/optimize-profile', async (req, res) => {
   }
 });
 
+// Advanced resume optimization
+app.post('/api/optimize-resume-advanced', async (req, res) => {
+  try {
+    const { resumeText, targetJob, industry } = req.body;
+
+    if (!resumeText) {
+      return res.status(400).json({ error: 'Resume text is required' });
+    }
+
+    const result = await optimizeResumeAdvanced(resumeText, targetJob, industry);
+    res.json(result);
+  } catch (error) {
+    console.error('Advanced resume optimization error:', error);
+    res.status(500).json({ error: 'Failed to optimize resume' });
+  }
+});
+
+// Resume job fit analysis
+app.post('/api/analyze-resume-job-fit', async (req, res) => {
+  try {
+    const { resumeText, jobDescription } = req.body;
+
+    if (!resumeText || !jobDescription) {
+      return res.status(400).json({ error: 'Resume text and job description are required' });
+    }
+
+    const result = await analyzeResumeJobFit(resumeText, jobDescription);
+    res.json(result);
+  } catch (error) {
+    console.error('Resume job fit analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze job fit' });
+  }
+});
+
 // Application management
 app.get('/api/applications', (_req, res) => {
   res.json(applications);
@@ -166,6 +202,25 @@ app.delete('/api/applications/:id', (req, res) => {
 
   applications.splice(index, 1);
   res.json({ success: true });
+});
+
+// Settings management
+app.get('/api/settings', (_req, res) => {
+  res.json({
+    demoMode: process.env.DEMO_MODE !== 'false',
+    apiKeyConfigured: !!process.env.API_KEY,
+    ollamaUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
+  });
+});
+
+app.post('/api/settings', (req, res) => {
+  const { demoMode } = req.body;
+  if (typeof demoMode === 'boolean') {
+    process.env.DEMO_MODE = demoMode.toString();
+    res.json({ success: true, demoMode });
+  } else {
+    res.status(400).json({ error: 'Invalid demoMode value' });
+  }
 });
 
 // Auto-apply workflow orchestration
@@ -228,6 +283,75 @@ app.post('/api/auto-apply', upload.single('resume'), async (req, res) => {
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Job search endpoints
+app.post('/api/jobs/search', async (req, res) => {
+  try {
+    const { keywords, location, remote, salaryMin, jobType, limit } = req.body;
+
+    const searchParams = {
+      keywords: Array.isArray(keywords) ? keywords : [keywords || 'developer'],
+      location: location || 'Remote',
+      remote: remote || false,
+      salaryMin: salaryMin || 0,
+      jobType: jobType || 'full-time',
+      limit: limit || 50
+    };
+
+    const results = await jobSearchService.searchJobs(searchParams);
+
+    // Combine results from all sources
+    const allJobs = results.flatMap(result => result.jobs);
+    const totalCount = results.reduce((sum, result) => sum + result.totalCount, 0);
+
+    res.json({
+      jobs: allJobs,
+      totalCount,
+      sources: results.map(r => ({ source: r.source, count: r.jobs.length }))
+    });
+  } catch (error) {
+    console.error('Job search error:', error);
+    res.status(500).json({ error: 'Failed to search jobs' });
+  }
+});
+
+app.get('/api/jobs/trending', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const jobs = await jobSearchService.getTrendingJobs(limit);
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Trending jobs error:', error);
+    res.status(500).json({ error: 'Failed to get trending jobs' });
+  }
+});
+
+app.post('/api/jobs/similar/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 5;
+
+    // Find the job in our stored applications or search results
+    // For now, we'll create a mock job based on the ID
+    const mockJob: Job = {
+      id: jobId,
+      title: 'Sample Job',
+      company: 'Sample Company',
+      location: 'Remote',
+      salary: '$100k - $150k',
+      description: 'Sample job description',
+      postedAt: '1 day ago',
+      tags: ['React', 'TypeScript'],
+      logo: '/api/placeholder/64/64'
+    };
+
+    const similarJobs = await jobSearchService.getSimilarJobs(mockJob, limit);
+    res.json({ jobs: similarJobs });
+  } catch (error) {
+    console.error('Similar jobs error:', error);
+    res.status(500).json({ error: 'Failed to get similar jobs' });
+  }
 });
 
 // Start server

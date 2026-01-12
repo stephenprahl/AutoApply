@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import { ArrowUpDown, Building2, Calendar, CheckCircle2, CheckSquare, Download, Eye, FileText, Filter, Search, Square, X, XCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import type { ApplicationRecord } from '../types.ts';
 import { ApplicationStatus } from '../types.ts';
-import { CheckCircle2, XCircle, Search, Download, ArrowUpDown, Eye, X, Filter, Calendar, CheckSquare, Square, Building2, FileText } from 'lucide-react';
 
 interface HistoryProps {
     applications: ApplicationRecord[];
@@ -12,7 +12,7 @@ type SortOrder = 'asc' | 'desc';
 
 const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'applied' | 'skipped'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'applied' | 'pending' | 'failed'>('all');
     const [sortField, setSortField] = useState<SortField>('timestamp');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
     const [selectedApplication, setSelectedApplication] = useState<ApplicationRecord | null>(null);
@@ -33,8 +33,10 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                 (app.matchReason && app.matchReason.toLowerCase().includes(searchTerm.toLowerCase()));
 
             const matchesStatus = statusFilter === 'all' ||
+                (statusFilter === 'submitted' && app.status === ApplicationStatus.SUBMITTED) ||
                 (statusFilter === 'applied' && app.status === ApplicationStatus.APPLIED) ||
-                (statusFilter === 'skipped' && app.status === ApplicationStatus.REJECTED);
+                (statusFilter === 'pending' && (app.status === ApplicationStatus.PENDING || app.status === ApplicationStatus.READY_TO_SUBMIT || app.status === ApplicationStatus.ANALYZING)) ||
+                (statusFilter === 'failed' && app.status === ApplicationStatus.FAILED);
 
             const matchesDateRange = (!dateRange.start || new Date(app.timestamp) >= new Date(dateRange.start)) &&
                 (!dateRange.end || new Date(app.timestamp) <= new Date(dateRange.end));
@@ -162,9 +164,12 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
 
     const stats = {
         total: applications.length,
+        submitted: applications.filter(a => a.status === ApplicationStatus.SUBMITTED).length,
         applied: applications.filter(a => a.status === ApplicationStatus.APPLIED).length,
+        pending: applications.filter(a => a.status === ApplicationStatus.PENDING || a.status === ApplicationStatus.READY_TO_SUBMIT || a.status === ApplicationStatus.ANALYZING).length,
+        failed: applications.filter(a => a.status === ApplicationStatus.FAILED).length,
         skipped: applications.filter(a => a.status === ApplicationStatus.REJECTED).length,
-        avgMatch: applications.length > 0 
+        avgMatch: applications.length > 0
             ? Math.round(applications.reduce((sum, app) => sum + app.matchScore, 0) / applications.length)
             : 0
     };
@@ -195,11 +200,10 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                                className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 flex items-center gap-2 ${
-                                    showAdvancedFilters
+                                className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 flex items-center gap-2 ${showAdvancedFilters
                                         ? 'bg-blue-600 text-white shadow-sm'
                                         : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                                }`}
+                                    }`}
                             >
                                 <Filter className="w-4 h-4" />
                                 Advanced Filters
@@ -220,7 +224,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                     <MetricCard
                         title="Total Applications"
                         value={stats.total}
-                        icon={<FileText className="text-blue-600 w-7 h-7"/>}
+                        icon={<FileText className="text-blue-600 w-7 h-7" />}
                         bg="bg-gradient-to-br from-blue-50 to-indigo-50"
                         borderColor="border-blue-200"
                         trend="All time applications"
@@ -229,7 +233,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                     <MetricCard
                         title="Successfully Applied"
                         value={stats.applied}
-                        icon={<CheckCircle2 className="text-green-600 w-7 h-7"/>}
+                        icon={<CheckCircle2 className="text-green-600 w-7 h-7" />}
                         bg="bg-gradient-to-br from-green-50 to-emerald-50"
                         borderColor="border-green-200"
                         trend="Submitted applications"
@@ -238,7 +242,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                     <MetricCard
                         title="Applications Skipped"
                         value={stats.skipped}
-                        icon={<XCircle className="text-red-600 w-7 h-7"/>}
+                        icon={<XCircle className="text-red-600 w-7 h-7" />}
                         bg="bg-gradient-to-br from-red-50 to-rose-50"
                         borderColor="border-red-200"
                         trend="Filtered out by AI"
@@ -247,7 +251,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                     <MetricCard
                         title="Average Match Score"
                         value={`${stats.avgMatch}%`}
-                        icon={<ArrowUpDown className="text-purple-600 w-7 h-7"/>}
+                        icon={<ArrowUpDown className="text-purple-600 w-7 h-7" />}
                         bg="bg-gradient-to-br from-purple-50 to-violet-50"
                         borderColor="border-purple-200"
                         trend="Overall performance"
@@ -268,7 +272,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                 <input
                                     type="date"
                                     value={dateRange.start}
-                                    onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
                                 />
                             </div>
@@ -277,7 +281,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                 <input
                                     type="date"
                                     value={dateRange.end}
-                                    onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-corporate focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
                                 />
                             </div>
@@ -288,7 +292,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                     min="0"
                                     max="100"
                                     value={matchScoreRange.min}
-                                    onChange={(e) => setMatchScoreRange({...matchScoreRange, min: parseInt(e.target.value)})}
+                                    onChange={(e) => setMatchScoreRange({ ...matchScoreRange, min: parseInt(e.target.value) })}
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                                 />
                             </div>
@@ -299,7 +303,7 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                     min="0"
                                     max="100"
                                     value={matchScoreRange.max}
-                                    onChange={(e) => setMatchScoreRange({...matchScoreRange, max: parseInt(e.target.value)})}
+                                    onChange={(e) => setMatchScoreRange({ ...matchScoreRange, max: parseInt(e.target.value) })}
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                                 />
                             </div>
@@ -342,33 +346,48 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setStatusFilter('all')}
-                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${
-                                        statusFilter === 'all'
+                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${statusFilter === 'all'
                                             ? 'bg-blue-600 text-white shadow-sm'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                                    }`}
+                                        }`}
                                 >
                                     All ({stats.total})
                                 </button>
                                 <button
+                                    onClick={() => setStatusFilter('submitted')}
+                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${statusFilter === 'submitted'
+                                            ? 'bg-emerald-600 text-white shadow-sm'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                                        }`}
+                                >
+                                    Submitted ({stats.submitted})
+                                </button>
+                                <button
                                     onClick={() => setStatusFilter('applied')}
-                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${
-                                        statusFilter === 'applied'
+                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${statusFilter === 'applied'
                                             ? 'bg-green-600 text-white shadow-sm'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                                    }`}
+                                        }`}
                                 >
                                     Applied ({stats.applied})
                                 </button>
                                 <button
-                                    onClick={() => setStatusFilter('skipped')}
-                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${
-                                        statusFilter === 'skipped'
+                                    onClick={() => setStatusFilter('pending')}
+                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${statusFilter === 'pending'
+                                            ? 'bg-yellow-600 text-white shadow-sm'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                                        }`}
+                                >
+                                    Pending ({stats.pending})
+                                </button>
+                                <button
+                                    onClick={() => setStatusFilter('failed')}
+                                    className={`px-6 py-3 rounded-corporate font-semibold transition-all duration-200 ${statusFilter === 'failed'
                                             ? 'bg-red-600 text-white shadow-sm'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                                    }`}
+                                        }`}
                                 >
-                                    Skipped ({stats.skipped})
+                                    Failed ({stats.failed})
                                 </button>
                             </div>
                         </div>
@@ -506,33 +525,56 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                         </td>
                                         <td className="p-6">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 ${
-                                                    app.matchScore >= 80 ? 'bg-green-50 border-green-200' :
-                                                    app.matchScore >= 60 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
-                                                }`}>
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 ${app.matchScore >= 80 ? 'bg-green-50 border-green-200' :
+                                                        app.matchScore >= 60 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
+                                                    }`}>
                                                     <div className="text-sm font-bold text-gray-900 min-w-[3rem] text-right">
                                                         {app.matchScore}%
                                                     </div>
                                                 </div>
-                                                <div className={`text-xs font-semibold mt-1 ${
-                                                    app.matchScore >= 80 ? 'text-green-700' :
-                                                    app.matchScore >= 60 ? 'text-yellow-700' : 'text-red-600'
-                                                }`}>
+                                                <div className={`text-xs font-semibold mt-1 ${app.matchScore >= 80 ? 'text-green-700' :
+                                                        app.matchScore >= 60 ? 'text-yellow-700' : 'text-red-600'
+                                                    }`}>
                                                     {app.matchScore >= 80 ? 'Excellent Match' :
-                                                     app.matchScore >= 60 ? 'Good Match' : 'Low Match'}
+                                                        app.matchScore >= 60 ? 'Good Match' : 'Low Match'}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="p-6">
-                                            {app.status === ApplicationStatus.APPLIED ? (
+                                            {app.status === ApplicationStatus.SUBMITTED ? (
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Submitted
+                                                </div>
+                                            ) : app.status === ApplicationStatus.APPLIED ? (
                                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-green-50 text-green-700 border border-green-200">
                                                     <CheckCircle2 className="w-4 h-4" />
                                                     Applied
                                                 </div>
-                                            ) : (
+                                            ) : app.status === ApplicationStatus.READY_TO_SUBMIT ? (
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                    <CheckSquare className="w-4 h-4" />
+                                                    Ready to Submit
+                                                </div>
+                                            ) : app.status === ApplicationStatus.ANALYZING ? (
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                                    <Search className="w-4 h-4" />
+                                                    Analyzing
+                                                </div>
+                                            ) : app.status === ApplicationStatus.PENDING ? (
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gray-50 text-gray-700 border border-gray-200">
+                                                    <Square className="w-4 h-4" />
+                                                    Pending
+                                                </div>
+                                            ) : app.status === ApplicationStatus.FAILED ? (
                                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-red-50 text-red-700 border border-red-200">
                                                     <XCircle className="w-4 h-4" />
-                                                    Skipped
+                                                    Failed
+                                                </div>
+                                            ) : (
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-gray-50 text-gray-700 border border-gray-200">
+                                                    <Square className="w-4 h-4" />
+                                                    {app.status}
                                                 </div>
                                             )}
                                         </td>
@@ -605,11 +647,10 @@ const ApplicationHistory: React.FC<HistoryProps> = ({ applications }) => {
                                             <button
                                                 key={pageNum}
                                                 onClick={() => setCurrentPage(pageNum)}
-                                                className={`px-3 py-2 rounded-corporate font-semibold transition-all duration-200 ${
-                                                    pageNum === currentPage
+                                                className={`px-3 py-2 rounded-corporate font-semibold transition-all duration-200 ${pageNum === currentPage
                                                         ? 'bg-blue-600 text-white'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                }`}
+                                                    }`}
                                             >
                                                 {pageNum}
                                             </button>

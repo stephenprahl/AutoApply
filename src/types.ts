@@ -1,5 +1,7 @@
 export interface UserProfile {
   name: string;
+  email?: string;
+  phone?: string;
   title: string;
   experience: string; // Years of experience
   skills: string[];
@@ -59,14 +61,17 @@ export interface Job {
   postedAt: string;
   tags: string[];
   logo: string;
+  applicationUrl?: string; // URL for applying to the job
 }
 
 export const ApplicationStatus = {
   PENDING: 'PENDING',
+  READY_TO_SUBMIT: 'READY_TO_SUBMIT',
   ANALYZING: 'ANALYZING',
   MATCHED: 'MATCHED',
   REJECTED: 'REJECTED',
   APPLYING: 'APPLYING',
+  SUBMITTED: 'SUBMITTED',
   APPLIED: 'APPLIED',
   FAILED: 'FAILED'
 } as const;
