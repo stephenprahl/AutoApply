@@ -24,7 +24,7 @@ interface AgentConfig {
   location: string;
   salaryMin: string;
   jobType: 'full-time' | 'part-time' | 'contract' | 'any';
-  remoteOnly: boolean;
+  workArrangement: 'hybrid' | 'on-site' | 'remote';
 }
 
 const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, addApplication }) => {
@@ -43,12 +43,13 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
     location: 'Remote',
     salaryMin: '100000',
     jobType: 'full-time',
-    remoteOnly: true
+    workArrangement: 'remote'
   });
   const [showConfig, setShowConfig] = useState(false);
   const [showJobSearch, setShowJobSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<Job[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchWorkArrangement, setSearchWorkArrangement] = useState<'hybrid' | 'on-site' | 'remote'>('remote');
   const [isLoading, setIsLoading] = useState(false);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -89,7 +90,7 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
       const searchParams = {
         keywords: config.keywords,
         location: config.location,
-        remote: config.remoteOnly,
+        workArrangement: config.workArrangement,
         salaryMin: parseInt(config.salaryMin) || undefined,
         jobType: config.jobType === 'any' ? undefined : config.jobType,
         limit: 20
@@ -215,8 +216,17 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
         }
       ];
 
-      setSearchResults(mockResults);
-      addLog(`Found ${mockResults.length} jobs matching "${searchQuery}"`, 'info');
+      // Filter based on work arrangement
+      let filteredResults = mockResults;
+      if (searchWorkArrangement === 'remote') {
+        filteredResults = mockResults.filter(job => job.location === 'Remote');
+      } else if (searchWorkArrangement === 'on-site') {
+        filteredResults = mockResults.filter(job => job.location !== 'Remote');
+      }
+      // For hybrid, show all
+
+      setSearchResults(filteredResults);
+      addLog(`Found ${filteredResults.length} jobs matching "${searchQuery}"`, 'info');
     } catch (error) {
       addLog(`Search error: ${error}`, 'error');
     }
@@ -288,6 +298,17 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
                     placeholder="Search for jobs by title, company, or keywords..."
                     className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
                   />
+                </div>
+                <div className="w-48">
+                  <select
+                    value={searchWorkArrangement}
+                    onChange={(e) => setSearchWorkArrangement(e.target.value as 'hybrid' | 'on-site' | 'remote')}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                  >
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="on-site">On-Site</option>
+                  </select>
                 </div>
                 <button
                   onClick={handleJobSearch}
@@ -399,6 +420,18 @@ const AgentView: React.FC<AgentViewProps> = ({ profile: _profile, applications, 
                   <label htmlFor="autoApply" className="text-sm font-medium text-gray-700">
                     Auto-apply to matches
                   </label>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Work Arrangement</label>
+                  <select
+                    value={config.workArrangement}
+                    onChange={(e) => setConfig({ ...config, workArrangement: e.target.value as 'hybrid' | 'on-site' | 'remote' })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                  >
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="on-site">On-Site</option>
+                  </select>
                 </div>
               </div>
             </div>

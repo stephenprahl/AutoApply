@@ -154,7 +154,7 @@ export const backendApi = {
   },
 
   // Job search
-  async searchJobs(params: { keywords: string[]; location: string; remote: boolean; salaryMin?: number; jobType?: string; limit?: number }) {
+  async searchJobs(params: { keywords: string[]; location: string; workArrangement?: 'hybrid' | 'on-site' | 'remote'; salaryMin?: number; jobType?: string; limit?: number }) {
     const response = await fetch(`${API_BASE_URL}/jobs/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

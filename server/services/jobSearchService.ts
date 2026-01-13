@@ -4,7 +4,7 @@ import type { Job } from '../../src/types.js';
 export interface JobSearchParams {
     keywords: string[];
     location: string;
-    remote: boolean;
+    workArrangement?: 'hybrid' | 'on-site' | 'remote';
     salaryMin?: number;
     jobType?: string;
     limit?: number;
