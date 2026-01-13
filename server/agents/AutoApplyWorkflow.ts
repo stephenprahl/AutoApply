@@ -82,6 +82,28 @@ export class AutoApplyWorkflow {
                 })) || []);
             }
 
+            // Create dummy profile for demo mode if no profile exists
+            if (!state.profile && !process.env.API_KEY) {
+                state.profile = {
+                    name: "Demo User",
+                    email: "demo@example.com",
+                    phone: "+1-555-0123",
+                    title: "Software Engineer",
+                    experience: "3-5 years",
+                    skills: ["JavaScript", "React", "Node.js", "Python", "TypeScript"],
+                    resumeText: "Experienced software engineer with 4 years of experience in full-stack development...",
+                    preferences: {
+                        remote: true,
+                        minSalary: 80000
+                    }
+                };
+                state.logs!.push({
+                    timestamp: Date.now(),
+                    message: "Using demo profile for testing",
+                    type: "info"
+                });
+            }
+
             // Step 2: Orchestrate applications
             if (state.jobs && state.jobs.length > 0) {
                 state.logs!.push({

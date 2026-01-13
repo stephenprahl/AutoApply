@@ -25,10 +25,15 @@ export class ApplicationOrchestratorAgent {
         if (!key) {
             this.llm = null as any; // Demo mode
         } else {
-            this.llm = new ChatOllama({
-                model: "gpt-oss:120b-cloud",
-                baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
-            });
+            try {
+                this.llm = new ChatOllama({
+                    model: "gpt-oss:120b-cloud",
+                    baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
+                });
+            } catch (error) {
+                console.warn("Failed to initialize ChatOllama for ApplicationOrchestratorAgent, falling back to demo mode:", error);
+                this.llm = null as any;
+            }
         }
     }
 
@@ -135,8 +140,27 @@ export class ApplicationOrchestratorAgent {
         let currentState: ApplicationOrchestratorState = { ...state, status: 'processing' };
 
         try {
-            if (!state.profile || !state.jobs || state.jobs.length === 0) {
-                return this.log({ ...currentState, status: 'error' }, "Profile and jobs required for orchestration", "error");
+            if (!state.jobs || state.jobs.length === 0) {
+                return this.log({ ...currentState, status: 'error' }, "Jobs required for orchestration", "error");
+            }
+
+            // In demo mode, create a dummy profile if none provided
+            if (!state.profile && !this.llm) {
+                state.profile = {
+                    name: "Demo User",
+                    title: "Software Engineer",
+                    experience: "3-5 years",
+                    skills: ["JavaScript", "React", "Node.js", "Python"],
+                    resumeText: "Experienced software engineer with 4 years of experience...",
+                    preferences: {
+                        remote: true,
+                        minSalary: 80000
+                    }
+                };
+            }
+
+            if (!state.profile) {
+                return this.log({ ...currentState, status: 'error' }, "Profile required for orchestration (or run in demo mode)", "error");
             }
 
             currentState = this.log(currentState, `Starting application orchestration for ${state.jobs.length} jobs`);

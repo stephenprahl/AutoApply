@@ -1,3 +1,4 @@
+import { chromium, type Browser, type Page } from 'playwright';
 import type { Job } from '../../src/types.js';
 
 export interface JobSearchParams {
@@ -17,6 +18,7 @@ export interface JobSearchResult {
 
 class JobSearchService {
     private readonly sources = [
+        'google',
         'linkedin',
         'indeed',
         'glassdoor',
@@ -48,6 +50,19 @@ class JobSearchService {
 
     private async searchSource(source: string, params: JobSearchParams): Promise<JobSearchResult> {
         try {
+            if (source === 'google') {
+                const jobs = await this.searchGoogleJobs(params);
+                return {
+                    jobs: jobs.map(job => ({
+                        ...job,
+                        id: `${source}-${job.id}`,
+                        applicationUrl: job.applicationUrl || this.generateApplicationUrl(source, job)
+                    })) as Job[],
+                    totalCount: jobs.length,
+                    source
+                };
+            }
+
             // In a real implementation, you'd use proper APIs or scraping
             // For now, we'll simulate API calls
             const response = await this.simulateApiCall(source, params);
@@ -64,6 +79,107 @@ class JobSearchService {
         } catch (error) {
             console.error(`Error searching ${source}:`, error);
             return { jobs: [], totalCount: 0, source };
+        }
+    }
+
+    private async searchGoogleJobs(params: JobSearchParams): Promise<Partial<Job>[]> {
+        let browser: Browser | null = null;
+        let context: any = null;
+        let page: Page | null = null;
+
+        try {
+            // Launch browser
+            browser = await chromium.launch({
+                headless: true, // Run headless for server environment
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+
+            context = await browser.newContext({
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            });
+
+            page = await context.newPage();
+
+            // Build search query for jobs
+            const query = `${params.keywords.join(' ')} jobs ${params.remote ? 'remote' : ''}`.trim();
+            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+            await page.goto(searchUrl, { waitUntil: 'networkidle' });
+
+            // Wait for search results to load
+            await page.waitForTimeout(2000);
+
+            // Extract job listings
+            const jobs = await page.evaluate(() => {
+                const extractedJobs: any[] = [];
+
+                // Look for job-related search results
+                const resultSelectors = [
+                    'h3', // Regular search result titles
+                    '[data-ved] h3', // Google result titles
+                    '.g h3', // Knowledge panel results
+                    '.result h3' // Alternative result format
+                ];
+
+                const allTitles = document.querySelectorAll('h3');
+                allTitles.forEach((titleElement, index) => {
+                    if (extractedJobs.length >= 15) return; // Limit jobs
+
+                    const title = titleElement?.textContent?.trim() || '';
+                    const linkElement = titleElement.closest('a') || titleElement.querySelector('a');
+                    const url = linkElement?.href || '';
+
+                    // Look for parent container for more info
+                    const container = titleElement.closest('[data-ved]') || titleElement.closest('.g') || titleElement.parentElement;
+                    const snippet = container?.querySelector('.VwiC3b, .s3v9rd, .aCOpRe')?.textContent?.trim() || '';
+
+                    // Filter for job-related results
+                    const jobKeywords = ['job', 'hiring', 'career', 'position', 'employment', 'vacancy'];
+                    const isJobRelated = jobKeywords.some(keyword =>
+                        title.toLowerCase().includes(keyword) ||
+                        snippet.toLowerCase().includes(keyword) ||
+                        url.toLowerCase().includes('job') ||
+                        url.toLowerCase().includes('career')
+                    );
+
+                    if (isJobRelated && title && url) {
+                        // Try to extract company from snippet or URL
+                        let company = '';
+                        const urlMatch = url.match(/https?:\/\/(?:www\.)?([^\/]+)/);
+                        if (urlMatch) {
+                            company = urlMatch[1].replace(/\.(com|org|net|io|co)$/i, '').replace(/[^\w]/g, ' ').trim();
+                            company = company.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                        }
+
+                        // Extract location from snippet
+                        let location = 'Remote';
+                        const locationMatch = snippet.match(/(?:in|at|location:?\s*)([A-Za-z\s,]+?)(?:\s*\||\s*\-|(?:\d{4,}|\$))/);
+                        if (locationMatch) {
+                            location = locationMatch[1].trim();
+                        }
+
+                        extractedJobs.push({
+                            id: `google-${Date.now()}-${extractedJobs.length}`,
+                            title: title.replace(/\s*\-\s*[^-]*$/g, '').trim(), // Remove trailing company info
+                            company: company || 'Company',
+                            location,
+                            description: snippet || `Job opportunity: ${title}`,
+                            postedAt: 'Recently posted',
+                            tags: ['Google Search'],
+                            applicationUrl: url
+                        });
+                    }
+                });
+                return jobs;
+            });
+
+            return jobs;
+            console.error('Error searching Google jobs:', error);
+            return [];
+        } finally {
+            if (page) await page.close();
+            if (context) await context.close();
+            if (browser) await browser.close();
         }
     }
 
@@ -191,6 +307,7 @@ class JobSearchService {
 
     private generateApplicationUrl(source: string, job: Partial<Job>): string {
         const baseUrls: Record<string, string> = {
+            google: 'https://www.google.com/search?q=',
             linkedin: 'https://linkedin.com/jobs/view/',
             indeed: 'https://indeed.com/viewjob?jk=',
             glassdoor: 'https://glassdoor.com/job-listing/',

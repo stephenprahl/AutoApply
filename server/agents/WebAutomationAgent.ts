@@ -179,62 +179,139 @@ export class WebAutomationAgent {
 
     private async fillCompanyApplication(page: Page, profile: UserProfile, job: Job): Promise<boolean> {
         try {
-            // Navigate to company career page
+            // Navigate to the provided URL (could be homepage or job page)
             await page.goto(job.applicationUrl!, { waitUntil: 'networkidle' });
 
             // Wait for page to load
             await page.waitForTimeout(2000);
 
-            // Look for application form or apply button
-            const applyButton = page.locator('button:has-text("Apply")').or(page.locator('a:has-text("Apply")'))
-                .or(page.locator('button:has-text("Join")')).or(page.locator('a:has-text("Join")'));
+            // Check if we're already on a careers/job page
+            const isCareersPage = await page.evaluate(() => {
+                const text = document.body.textContent?.toLowerCase() || '';
+                const url = window.location.href.toLowerCase();
+                return text.includes('careers') || text.includes('jobs') || text.includes('join us') ||
+                    url.includes('careers') || url.includes('jobs') || url.includes('join');
+            });
 
-            if (await applyButton.count() > 0) {
-                await applyButton.first().click();
-                await page.waitForTimeout(2000);
-            }
-
-            // Fill out common form fields
-            const formFields = {
-                'input[name*="name"]': profile.name,
-                'input[name*="email"]': profile.email,
-                'input[name*="phone"]': profile.phone,
-                'textarea[name*="experience"]': profile.experience ? `${profile.experience} years` : '',
-                'textarea[name*="skills"]': profile.skills?.join(', '),
-            };
-
-            for (const [selector, value] of Object.entries(formFields)) {
-                if (value) {
-                    const field = page.locator(selector);
-                    if (await field.count() > 0) {
-                        await field.first().fill(value);
-                    }
+            if (!isCareersPage) {
+                // Try to find and navigate to careers page
+                const careersUrl = await this.findCareersPage(page, job.company);
+                if (careersUrl) {
+                    await page.goto(careersUrl, { waitUntil: 'networkidle' });
+                    await page.waitForTimeout(2000);
                 }
             }
 
-            // Handle file uploads
-            const fileInputs = page.locator('input[type="file"]');
-            if (await fileInputs.count() > 0) {
-                // Resume upload logic would go here
-            }
+            // Now look for job listings or application forms
+            await this.findAndApplyToJob(page, profile, job);
 
-            // Fill additional questions
-            await this.fillAdditionalQuestions(page, profile, job);
-
-            // Submit form
-            const submitButton = page.locator('button[type="submit"]').or(page.locator('input[type="submit"]'))
-                .or(page.locator('button:has-text("Submit")')).or(page.locator('button:has-text("Apply")'));
-
-            if (await submitButton.count() > 0) {
-                await submitButton.click();
-                await page.waitForTimeout(3000);
-                return true;
-            }
-
-            return false;
+            return true;
         } catch (error) {
             console.error('Company application error:', error);
             return false;
+        }
+    }
+
+    private async findCareersPage(page: Page, companyName: string): Promise<string | null> {
+        try {
+            // Common careers page patterns
+            const careersPatterns = [
+                '/careers',
+                '/jobs',
+                '/join-us',
+                '/work-with-us',
+                '/opportunities',
+                '/careers.html',
+                '/jobs.html'
+            ];
+
+            // Try direct navigation to common careers URLs
+            const baseUrl = await page.evaluate(() => {
+                const url = new URL(window.location.href);
+                return `${url.protocol}//${url.hostname}`;
+            });
+
+            for (const pattern of careersPatterns) {
+                try {
+                    const careersUrl = `${baseUrl}${pattern}`;
+                    const response = await page.goto(careersUrl, { waitUntil: 'networkidle', timeout: 5000 });
+                    if (response?.ok()) {
+                        // Check if this is actually a careers page
+                        const isCareers = await page.evaluate(() => {
+                            const text = document.body.textContent?.toLowerCase() || '';
+                            return text.includes('careers') || text.includes('jobs') || text.includes('join') ||
+                                text.includes('opportunities') || text.includes('work with us');
+                        });
+                        if (isCareers) {
+                            return careersUrl;
+                        }
+                    }
+                } catch (e) {
+                    // Continue to next pattern
+                }
+            }
+
+            // Try searching the page for careers links
+            const careersLink = await page.locator('a').filter({ hasText: /careers|jobs|join|opportunities/i }).first();
+            if (await careersLink.isVisible()) {
+                const href = await careersLink.getAttribute('href');
+                if (href) {
+                    return href.startsWith('http') ? href : `${baseUrl}${href}`;
+                }
+            }
+
+            return null;
+        } catch (error) {
+            console.error('Error finding careers page:', error);
+            return null;
+        }
+    }
+
+    private async findAndApplyToJob(page: Page, profile: UserProfile, job: Job): Promise<void> {
+        // Look for application form or apply button
+        const applyButton = page.locator('button:has-text("Apply")').or(page.locator('a:has-text("Apply")'))
+            .or(page.locator('button:has-text("Join")')).or(page.locator('a:has-text("Join")'))
+            .or(page.locator('button:has-text("Apply Now")')).or(page.locator('a:has-text("Apply Now")'));
+
+        if (await applyButton.count() > 0) {
+            await applyButton.first().click();
+            await page.waitForTimeout(2000);
+        }
+
+        // Fill out common form fields
+        const formFields = {
+            'input[name*="name"]': profile.name,
+            'input[name*="email"]': profile.email,
+            'input[name*="phone"]': profile.phone,
+            'textarea[name*="experience"]': profile.experience ? `${profile.experience} years` : '',
+            'textarea[name*="skills"]': profile.skills?.join(', '),
+        };
+
+        for (const [selector, value] of Object.entries(formFields)) {
+            if (value) {
+                const field = page.locator(selector);
+                if (await field.count() > 0) {
+                    await field.first().fill(value);
+                }
+            }
+        }
+
+        // Handle file uploads
+        const fileInputs = page.locator('input[type="file"]');
+        if (await fileInputs.count() > 0) {
+            // Resume upload logic would go here
+        }
+
+        // Fill additional questions
+        await this.fillAdditionalQuestions(page, profile, job);
+
+        // Submit form
+        const submitButton = page.locator('button[type="submit"]').or(page.locator('input[type="submit"]'))
+            .or(page.locator('button:has-text("Submit")')).or(page.locator('button:has-text("Apply")'));
+
+        if (await submitButton.count() > 0) {
+            await submitButton.click();
+            await page.waitForTimeout(3000);
         }
     }
 

@@ -20,10 +20,15 @@ export class JobAnalyzerAgent {
         if (!key) {
             this.llm = null as any; // Demo mode
         } else {
-            this.llm = new ChatOllama({
-                model: "gpt-oss:120b-cloud",
-                baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
-            });
+            try {
+                this.llm = new ChatOllama({
+                    model: "gpt-oss:120b-cloud",
+                    baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
+                });
+            } catch (error) {
+                console.warn("Failed to initialize ChatOllama for JobAnalyzerAgent, falling back to demo mode:", error);
+                this.llm = null as any;
+            }
         }
     }
 
