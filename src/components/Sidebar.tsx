@@ -1,6 +1,6 @@
-import React from 'react';
-import { LayoutDashboard, User, Briefcase, Zap, Building2, Star, Cog } from 'lucide-react';
 import clsx from 'clsx';
+import { Briefcase, Building2, Cog, LayoutDashboard, Search, Star, User, Zap } from 'lucide-react';
+import React from 'react';
 
 interface SidebarProps {
   currentView: string;
@@ -12,6 +12,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'recommendations', label: 'Recommendations', icon: Star },
     { id: 'agent', label: 'AI Agent', icon: Zap },
+    { id: 'google-search', label: 'Google Auto-Apply', icon: Search },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'history', label: 'Applications', icon: Briefcase },
     { id: 'settings', label: 'Settings', icon: Cog },
@@ -38,8 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
               onClick={() => setCurrentView(item.id)}
               className={clsx(
                 "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group font-medium text-sm",
-                isActive 
-                  ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600" 
+                isActive
+                  ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               )}
             >

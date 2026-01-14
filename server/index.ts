@@ -3,8 +3,8 @@ import express from 'express';
 import multer from 'multer';
 import type { ApplicationRecord, Job, UserProfile } from '../src/types';
 import { AutoApplyWorkflow } from './agents/AutoApplyWorkflow';
-import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/ollamaService';
 import { jobSearchService } from './services/jobSearchService';
+import { analyzeJobFit, generateCoverLetter, optimizeProfileSummary } from './services/ollamaService';
 import { analyzeJobFit as analyzeResumeJobFit, optimizeResumeAdvanced } from './services/resumeOptimizer';
 import { parseResumeFile } from './services/resumeParser';
 
@@ -280,6 +280,86 @@ app.post('/api/auto-apply', upload.single('resume'), async (req, res) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       error: 'Failed to execute auto-apply workflow',
+      details: errorMessage
+    });
+  }
+});
+
+/**
+ * Google Search Auto-Apply Workflow
+ * 
+ * This endpoint:
+ * 1. Goes to Google search bar
+ * 2. Searches for "hiring jobs" + relevant keywords from resume
+ * 3. Analyzes search results for keyword matches from the resume
+ * 4. Navigates to matching company websites
+ * 5. Finds the careers/application page
+ * 6. Fills out ALL fields on ALL pages of the application
+ * 7. Submits the application
+ * 8. Reports success/failure for each application
+ */
+app.post('/api/google-search-apply', upload.single('resume'), async (req, res) => {
+  try {
+    let { searchQuery, maxApplications } = req.body;
+
+    let resumeFile: File | undefined;
+    if (req.file) {
+      // Convert buffer to File object
+      const arrayBuffer = req.file!.buffer.buffer.slice(req.file!.buffer.byteOffset, req.file!.buffer.byteOffset + req.file!.buffer.byteLength);
+      resumeFile = new File([arrayBuffer as ArrayBuffer], req.file!.originalname, {
+        type: req.file!.mimetype
+      });
+    }
+
+    console.log('Starting Google Search Auto-Apply workflow...');
+    console.log('Search query:', searchQuery || 'auto-generated from profile');
+
+    // Run the Google search workflow
+    const result = await autoApplyWorkflow.run({
+      useGoogleSearch: true,
+      searchQuery: searchQuery,
+      resumeFile,
+      maxApplications: maxApplications || 5,
+      profile: userProfile || undefined
+    });
+
+    // Update global state with results
+    if (result.profile) {
+      userProfile = result.profile;
+    }
+    if (result.applications) {
+      const existingIds = new Set(applications.map(app => app.id));
+      const newApplications = result.applications.filter(app => !existingIds.has(app.id));
+      applications.push(...newApplications);
+    }
+
+    // Generate summary report
+    const successCount = result.logs?.filter(log => log.type === 'success').length || 0;
+    const errorCount = result.logs?.filter(log => log.type === 'error').length || 0;
+
+    res.json({
+      success: result.status === 'completed',
+      status: result.status,
+      summary: {
+        totalLogged: result.logs?.length || 0,
+        successfulActions: successCount,
+        errors: errorCount,
+        message: result.status === 'completed'
+          ? 'Google search auto-apply workflow completed successfully'
+          : 'Workflow completed with some issues'
+      },
+      profile: result.profile,
+      applications: result.applications,
+      logs: result.logs,
+      errors: result.errors
+    });
+
+  } catch (error) {
+    console.error('Google search auto-apply workflow error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({
+      success: false,
+      error: 'Failed to execute Google search auto-apply workflow',
       details: errorMessage
     });
   }

@@ -136,6 +136,37 @@ export const backendApi = {
     return response.json();
   },
 
+  /**
+   * Google Search Auto-Apply Workflow
+   * 
+   * This workflow:
+   * 1. Goes to Google search bar
+   * 2. Searches for "hiring jobs" + relevant keywords from resume
+   * 3. Analyzes search results for keyword matches from the resume
+   * 4. Navigates to matching company websites
+   * 5. Finds the careers/application page
+   * 6. Fills out ALL fields on ALL pages of the application
+   * 7. Submits the application
+   * 8. Reports success/failure for each application
+   */
+  async runGoogleSearchApply(options: {
+    searchQuery?: string;
+    maxApplications?: number;
+    resume?: File;
+  } = {}) {
+    const formData = new FormData();
+    if (options.searchQuery) formData.append('searchQuery', options.searchQuery);
+    if (options.maxApplications) formData.append('maxApplications', options.maxApplications.toString());
+    if (options.resume) formData.append('resume', options.resume);
+
+    const response = await fetch(`${API_BASE_URL}/google-search-apply`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('Failed to run Google search auto-apply workflow');
+    return response.json();
+  },
+
   // Settings management
   async getSettings() {
     const response = await fetch(`${API_BASE_URL}/settings`);

@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import Sidebar from './components/Sidebar.tsx';
-import Dashboard from './components/Dashboard.tsx';
+import React, { useEffect, useState } from 'react';
 import AgentView from './components/AgentView.tsx';
-import ProfileSetup from './components/ProfileSetup.tsx';
 import ApplicationHistory from './components/ApplicationHistory.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import { GoogleSearchApply } from './components/GoogleSearchApply.tsx';
 import JobRecommendations from './components/JobRecommendations.tsx';
+import ProfileSetup from './components/ProfileSetup.tsx';
 import Settings from './components/Settings.tsx';
+import Sidebar from './components/Sidebar.tsx';
 import { backendApi } from './services/backendService.ts';
-import type { UserProfile, ApplicationRecord, UserSettings } from './types.ts';
+import type { ApplicationRecord, UserProfile, UserSettings } from './types.ts';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  
+
   // Central State
   const [profile, setProfile] = useState<UserProfile>({
     name: 'Alex Developer',
@@ -145,6 +146,8 @@ const App: React.FC = () => {
         return <Dashboard applications={applications} />;
       case 'agent':
         return <AgentView profile={profile} applications={applications} addApplication={addApplication} />;
+      case 'google-search':
+        return <GoogleSearchApply />;
       case 'profile':
         return <ProfileSetup profile={profile} setProfile={setProfile} />;
       case 'history':
@@ -164,12 +167,12 @@ const App: React.FC = () => {
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans">
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
-      
+
       <main className="flex-1 ml-20 lg:ml-64 p-6 lg:p-8 transition-all duration-300">
         <header className="mb-8 flex justify-between items-center lg:hidden">
-             <div className="text-xl font-semibold text-gray-900">CareerFlow Pro</div>
+          <div className="text-xl font-semibold text-gray-900">CareerFlow Pro</div>
         </header>
-        
+
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
